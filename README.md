@@ -8,7 +8,9 @@ For company login and official website research, start with [Company workspaces]
 
 Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declared submission track: **Track 03 — Company Brain**.
 
-Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). Video recording and deployment are still pending; this repository does not claim the submission is complete without the required video.
+**Hosted showcase:** [Open Ripple](https://ripple-company-brain.vercel.app). Explore the read-only Acme workspace backed by live FalkorDB Cloud. The hosted deployment uses structured question routing; Gemini is available in the configured local workflow. Vercel sign-in protection was enabled at the last deployment check, so verify judge access before sharing the link.
+
+Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). The demo video still needs to be recorded and linked before submission.
 
 See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
 
@@ -27,7 +29,7 @@ See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed check
 - Persistent policy lookup in a fresh session, with source references and tool traces.
 - Native Gemini structured extraction and read-only function calling, with optional OpenAI support. Model text proposes and routes; deterministic policy checks and human approval govern writes.
 
-The public Acme workspace contains **fictional** data and is read-only. Signed-in company workspaces start empty, with separate policy graphs and real session/membership checks. Creating a workspace does not verify ownership of a company or website.
+The Acme showcase contains **fictional** data and is read-only. The hosted site disables company authentication and writes. Run locally for company login, website research and the full change/correction workflow. Signed-in company workspaces start empty, with separate policy graphs and real session/membership checks. Creating a workspace does not verify ownership of a company or website.
 
 ## Run locally
 
@@ -141,7 +143,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-Open http://127.0.0.1:3001. This remains a local prototype. Run one API process; do not scale replicas against company graphs without a shared concurrency strategy. For hosted use, deploy the Node process on a host with persistent SQLite storage and TCP access to FalkorDB, configure trusted HTTPS origins and a stable auth secret, and complete email verification/recovery and operational hardening. No public deployment has been created by this repository.
+Open http://127.0.0.1:3001. Run one API process for the writable prototype; do not scale writable replicas against company graphs without a shared concurrency strategy. The [Vercel showcase](https://ripple-company-brain.vercel.app) serves the frontend and read-only Express API functions with FalkorDB Cloud as the knowledge database. `RIPPLE_SHARE_DEMO=true` disables account initialization and write routes; `VITE_SHARE_DEMO=true` opens the demo directly. Database credentials stay in server-side Vercel secrets. Hosting writable company accounts requires persistent authentication storage, trusted HTTPS origins, a stable auth secret and email verification/recovery.
 
 ## Deliberate limits
 
@@ -156,4 +158,4 @@ Open http://127.0.0.1:3001. This remains a local prototype. Run one API process;
 
 ## AI assistance disclosure
 
-This project was implemented with assistance from OpenAI Codex. Participants must review, test, understand and explain the graph model, policy logic, queries, architecture and original hackathon contributions before submitting. Include this disclosure in the final submission and credit external dependencies.
+OpenAI Codex assisted with implementation, debugging, testing and documentation.

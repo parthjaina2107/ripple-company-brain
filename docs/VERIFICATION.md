@@ -1,6 +1,16 @@
 # Verification record
 
-## Submission preparation — October 17, 2026 (current)
+## Hosted deployment and QA repair — October 17, 2026 (current)
+
+- Deployed [Ripple on Vercel](https://ripple-company-brain.vercel.app) with FalkorDB Cloud as the knowledge store. The hosted Acme workspace is read-only, skips SQLite auth initialization and uses structured question routing without a hosted Gemini key. Local company authentication, website research and writes remain available separately.
+- Live database health returned `ready: true` and `storage: falkordb`; the demo graph contained 124 nodes and 205 relationships at deployment verification.
+- Fixed the full-height green banner by consolidating the hosted notice into the existing content banner. Removed the inactive hosted sign-in action. User QA confirmed layout, navigation, graph areas, filters, evidence, exports and persistence; later browser automation timed out, so the latest visual retest remains unconfirmed.
+- Fixed live question requests by allowing the exact `https://ripple-company-brain.vercel.app` Origin. Post-deployment requests with that header returned HTTP 200 for trial (7 days), refund window (14 days), cancellation (30 days) and support (24 hours). An unrelated Origin still returned HTTP 403.
+- Refund-processing and payment-arrival questions now return no applicable policy, with no policy sources. Regression tests also preserve valid refund eligibility questions. Knowledge searches with no matches now render an explicit empty state.
+- All 37 automated tests and the TypeScript/Vite production build passed. `npm run check:companies` passed against Cloud: approval, 30-to-14-day refund change, correction, export, idempotent apply, fresh-connection recall and isolation from a second company. Its two temporary verification graphs were removed. This rerun used offline routing and does not establish a new live Gemini check or a browser signup/write walkthrough.
+- Vercel sign-in protection remained enabled at the last deployment check. Judge access, the demo video, blog publication, team rehearsal and final event submission remain outstanding.
+
+## Submission preparation — October 17, 2026 (earlier verification)
 
 - `npm run check:db` passed against configured FalkorDB Cloud: 124 entities, 205 relationships; native paths: trial 28, refund 13, cancellation 10, support 11. Counts describe this saved demo, not every new company.
 - The running browser displayed **FalkorDB connected**. Its public Acme workspace remained read-only. Applied-review Markdown export completed successfully through the live API; the UI showed an export confirmation and the source/decision/evidence packet was available.
@@ -9,7 +19,7 @@
 - 37 automated tests pass. TypeScript/Vite production build passes. Export tests cover approval gating, foreign/missing review rejection, before/after evidence, digest validity, repeatability and no state mutation.
 - Local setup now defaults the example environment to real FalkorDB and documents Cloud, Docker, accounts, model configuration, checks, built serving and troubleshooting. Cloud was exercised; Docker was not available on this computer.
 - Entry is explicitly **Track 03 — Company Brain**. Submission copy, a blog draft, a repeatable rehearsal and team Q&A are in this repository. The model's constrained role and external publication limits are stated explicitly.
-- Still pending by request: video recording and deployment. Blog publication and final event submission have not been performed. Team members must personally rehearse and understand the work.
+- At this earlier checkpoint, recording and deployment were pending. Deployment has since been completed as described above. Blog publication, video recording and final event submission have not been performed. Team members must personally rehearse and understand the work.
 
 All older entries below are historical snapshots. Earlier trial-only unsupported-topic statements, test counts, seed counts and remaining-work notes should not be read as current status. Current refunds are supported; pricing is the unsupported example.
 

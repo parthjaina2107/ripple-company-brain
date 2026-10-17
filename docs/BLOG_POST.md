@@ -66,10 +66,10 @@ Another failure came from query construction. Generating larger query text as th
 
 ## What remains
 
-Ripple is a local prototype with one API process. It needs production email/account recovery, stronger operational controls and more selective queries before larger deployments. Public research does not render JavaScript-only pages or read PDFs. The policy model needs richer handling before expanding into conditional rules. External publishing remains a future integration.
+Ripple now has a [hosted read-only Acme showcase](https://ripple-company-brain.vercel.app) connected to FalkorDB Cloud. It uses structured routing; live Gemini and the writable company workflow are demonstrated through the configured local app. Vercel sign-in protection was enabled at the last deployment check, so access needs confirmation before sharing with readers. Writable production hosting still needs persistent authentication storage, account recovery, stronger operational controls and a shared concurrency strategy. Public research does not render JavaScript-only pages or read PDFs. The policy model needs richer handling before expanding into conditional rules. External publishing remains a future integration.
 
 The useful result today is concrete: a policy decision becomes a set of traceable repairs, rather than a new answer surrounded by old company knowledge.
 
 Source and setup: [Ripple on GitHub](https://github.com/parthjaina2107/ripple-company-brain), [local setup](LOCAL_SETUP.md), [queries](QUERIES.md), [verification](VERIFICATION.md). For an external blog platform, replace relative documentation links with their actual GitHub paths after pushing the current changes. The [official Graph Hacks page](https://www.wemakedevs.org/hackathons/falkordb) describes the event and blog side prize.
 
-**AI assistance disclosure:** OpenAI Codex assisted with implementation and drafting. Participants remain responsible for reviewing, testing, understanding and explaining the submitted work. Add only team contributions and observations that you can substantiate.
+**AI assistance:** OpenAI Codex assisted with implementation, debugging, testing and documentation.

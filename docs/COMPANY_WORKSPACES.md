@@ -24,6 +24,8 @@
 
 ## Storage and deployment
 
+The [hosted Acme showcase](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud with a read-only API. It opens directly into Acme, disables company authentication and write routes, and uses structured question routing without a hosted Gemini key. Run locally for the complete company workflow above. Vercel sign-in protection was enabled at the last deployment check; verify visitor access before sharing.
+
 In FalkorDB mode each organization has a graph name derived from its server-validated organization ID, never from a client-supplied graph name. Graph IDs are a naming convention; session and membership checks enforce access. Source snapshots, policies, decisions, evidence and reviews live in that graph. Preview mode uses separate local JSON files and is explicitly labeled as a simulator.
 
 Better Auth stores accounts, password hashes, memberships and sessions in ignored `.data/auth.sqlite`. A signing secret is generated locally in `.data/auth-secret` unless `BETTER_AUTH_SECRET` is supplied. Both need secure persistence and backup. Production requires a stable secret and correctly configured HTTPS origins (`BETTER_AUTH_URL`, `APP_ORIGIN`), plus email verification/recovery, invitation delivery and deployment hardening. Those production services have not been configured. Never publish `.env` or `.data`.

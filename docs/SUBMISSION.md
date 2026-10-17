@@ -10,7 +10,7 @@ When a company changes its refund window, which guides, workflows and saved agen
 
 ## What we built
 
-Ripple combines company login and separate company graphs with bounded research of public policy pages, exact-quote extraction, owner-approved baselines, change impact analysis, reviewed corrections and Markdown/JSON exports. Gemini extracts candidate claims and chooses a supported read-only policy tool. Deterministic checks and human approval control writes. This division is deliberate: a language model can interpret a document without being allowed to invent company policy or publish changes.
+Ripple combines company login and separate company graphs with bounded research of public policy pages, exact-quote extraction, owner-approved baselines, change impact analysis, reviewed corrections and Markdown/JSON exports. In the configured local workflow, Gemini extracts candidate claims and chooses a supported read-only policy tool. Deterministic checks and human approval control writes. The hosted Acme showcase is read-only and uses structured routing without a live model key. This division is deliberate: interpretation can use a model while approved graph records determine authoritative policy answers.
 
 FalkorDB is the primary database for company knowledge, dependencies, policy versions, decisions, review tasks and correction history. Native Cypher traversals discover affected sources and return evidence paths. Removing the live database prevents company knowledge retrieval and repair; SQLite stores authentication records only. An explicitly labeled preview simulator exists for development and is not the submission runtime.
 
@@ -18,24 +18,26 @@ FalkorDB is the primary database for company knowledge, dependencies, policy ver
 
 The October 17 live verification used Gemini and FalkorDB Cloud together: an approved 30-day refund baseline, a 14-day change, a discovered conflicting source, an approved correction and export, then 14-day recall through a new database connection. Retrying correction application produced one correction record. A second company stayed empty. The fixture was synthetic, not misrepresented as an actual public company's policy.
 
+The deployed showcase was verified against FalkorDB Cloud. Requests carrying the live site's browser Origin header returned HTTP 200 for all four supported policy areas. Refund-processing and payment-arrival questions correctly returned no applicable policy instead of borrowing the refund eligibility window. All 37 automated tests and the production build passed. A separate Cloud rerun verified change, correction, export, idempotency, fresh-connection recall and company isolation using temporary test graphs.
+
 ## Scope and limits
 
-The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits its own stored copies and exports work; it does not publish to Slack, Notion, Drive or company websites. Website research supports public HTML/text on the supplied host, at most four pages. It cannot access private systems or interpret arbitrary conditional contracts. The prototype uses one API process and is not enterprise-scale collaboration software.
+The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits its own stored copies and exports work; it does not publish to Slack, Notion, Drive or company websites. Website research supports public HTML/text on the supplied host, at most four pages. It cannot access private systems or interpret arbitrary conditional contracts. The writable company workflow runs locally with persistent SQLite authentication storage; the hosted deployment exposes the read-only synthetic Acme showcase. Distributed writable collaboration is not implemented.
 
 ## Links and status
 
-- Source: https://github.com/parthjaina2107/ripple-company-brain.
+- Source: [GitHub repository](https://github.com/parthjaina2107/ripple-company-brain).
 - Setup: [LOCAL_SETUP.md](LOCAL_SETUP.md).
 - Graph model and executable query explanation: [GRAPH_MODEL.md](GRAPH_MODEL.md), [QUERIES.md](QUERIES.md).
 - Verification: [VERIFICATION.md](VERIFICATION.md).
 - Demo rehearsal: [DEMO.md](DEMO.md).
 - Blog draft: [BLOG_POST.md](BLOG_POST.md).
-- Deployment: not created. Complete local setup is supplied.
+- Deployment: [live Acme showcase](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud. Vercel sign-in protection was enabled at the last deployment check; confirm judge access before submission. Use local setup for writable company workflows and live Gemini demonstrations.
 - Demo video: not recorded yet; add the actual working video URL before submission.
 - Blog: written locally; add a published URL only after publishing and checking the event's submission process.
 
 ## AI assistance disclosure
 
-Implementation and drafting used OpenAI Codex. The team must review the code, run the walkthrough, verify the results, and explain the graph, queries, policy rules and tradeoffs before submitting. This disclosure does not imply that participant understanding has been verified. Complete [JUDGE_QA.md](JUDGE_QA.md) as a hands-on rehearsal.
+OpenAI Codex assisted with implementation, debugging, testing and documentation.
 
 Official requirements checked October 17, 2026: [event rules](https://www.wemakedevs.org/hackathons/falkordb/rules). Keep the actual registration, video, repository and final submission status accurate; no award outcome is promised.

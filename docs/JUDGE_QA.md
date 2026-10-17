@@ -22,6 +22,8 @@ Read `applicablePolicy` in `server/domain.ts`. It considers topic, approved stat
 
 Read `discoverPublicFindings`, `extractClaims` and `answerQuestion` in `server/ai.ts`. It extracts candidate numeric claims with exact source quotes and routes a question to the supported `get_policy_context` tool. The server validates structured output, topic, unit and quoted evidence. Final authoritative numbers are rendered from approved graph records. The agent does not generate arbitrary Cypher, autonomously approve policies, or invent external changes. This is a constrained assistant workflow, not a general autonomous research agent.
 
+The hosted showcase currently uses structured routing without a Gemini key. Its live graph answers prove database retrieval and applicability logic, not hosted LLM inference. Use the configured local workflow and the recorded live verification to demonstrate Gemini extraction and tool calling. Refund processing and payment-arrival questions are rejected before topic lookup because the refund eligibility window does not describe when money arrives.
+
 ## How does idempotency work?
 
 `createReviews` uses a stable ID built from decision and artifact IDs, so reanalysis does not append duplicate tasks. `applyCorrection` returns an already applied review before creating another correction. State writes are serialized within one API process, and entity/edge IDs are upserted with `MERGE` in one parameterized query. Research approval rejects a previously imported snapshot and reuses matching source content. A newly submitted decision is a new command; duplicate decision submissions are not globally deduplicated. Do not automatically retry ambiguous writes or claim distributed exactly-once execution.

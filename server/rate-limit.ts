@@ -3,6 +3,7 @@ import type { Request, RequestHandler } from "express";
 import { FalkorDB } from "falkordb";
 import { DomainError } from "./domain.js";
 import { handleDatabaseErrors } from "./database-lifecycle.js";
+import { graphFromCookie } from "./judge-sandbox.js";
 
 export interface RateStore {
   consume(key: string, windowMs: number, now: number): Promise<{ count: number; resetAt: number }>;
@@ -16,6 +17,7 @@ SET b.count = CASE WHEN b.resetAt <= $now THEN 1 ELSE b.count + 1 END,
 RETURN b.count AS count, b.resetAt AS resetAt`;
 
 export class CloudRateStore implements RateStore {
+  private lastPrune = 0;
   private connection?: Promise<FalkorDB>;
   constructor(public readonly graphName = process.env.RIPPLE_SECURITY_GRAPH || `ripple_security_${createHash("sha256").update(process.env.FALKORDB_GRAPH || "ripple_hackathon").digest("hex").slice(0, 16)}`) {
     if (!/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/.test(graphName)) throw new Error("Invalid security graph name.");
@@ -31,7 +33,10 @@ export class CloudRateStore implements RateStore {
   async consume(key: string, windowMs: number, now: number) {
     const graph = (await this.database()).selectGraph(this.graphName);
     // Keep expired counters from accumulating. This never touches company data.
-    await graph.query("MATCH (b:RequestBudget) WHERE b.resetAt < $cutoff DELETE b", { params: { cutoff: now - 3600000 } });
+    if (now - this.lastPrune > 60000) {
+      this.lastPrune = now;
+      await graph.query("MATCH (b:RequestBudget) WHERE b.resetAt < $cutoff WITH b LIMIT 200 DELETE b", { params: { cutoff: now - 3600000 } });
+    }
     const result = await graph.query<{ count: number; resetAt: number }>(rateQuery, { params: { key, now, resetAt: now + windowMs } });
     const row = result.data?.[0];
     if (!row) throw new Error("Rate budget unavailable.");
@@ -68,11 +73,17 @@ export function operationBudget(path: string) {
 
 export function apiRateLimit(store: RateStore): RequestHandler {
   return async (req, res, next) => {
-    if (req.method !== "POST" || !req.path.startsWith("/api/") || req.path.startsWith("/api/auth/")) return next();
-    const budget = operationBudget(req.path);
+    if (!["POST", "GET"].includes(req.method) || !req.path.startsWith("/api/") || req.path.startsWith("/api/auth/")) return next();
+    const budget = req.method === "GET" ? { kind: "read", max: 120, windowMs: 60000 } : operationBudget(req.path);
     try {
       const now = Date.now();
-      const row = await store.consume(`${rateIdentity(req)}:${budget.kind}`, budget.windowMs, now);
+      let identity = rateIdentity(req);
+      if (req.path.startsWith("/api/judge/") && !req.path.endsWith("/session")) {
+        try { identity = createHash("sha256").update(graphFromCookie(req.headers.cookie)).digest("hex"); } catch { /* invalid visitors retain the IP budget */ }
+      }
+      const row = await store.consume(`${identity}:${budget.kind}`, budget.windowMs, now);
+      const global = await store.consume(`global:${budget.kind}`, budget.windowMs, now);
+      if (global.count > budget.max * 20) { res.setHeader("Retry-After", 60); return void res.status(429).json({ error: "The shared demo is busy. Please retry in a minute." }); }
       res.setHeader("RateLimit-Limit", budget.max);
       res.setHeader("RateLimit-Remaining", Math.max(0, budget.max - row.count));
       if (row.count > budget.max) {

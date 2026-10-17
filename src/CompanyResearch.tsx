@@ -3,13 +3,14 @@ import { Check, ExternalLink, Globe, LoaderCircle, Search, ShieldCheck } from "l
 import type { CompanyProfile, GraphState, ResearchResult, Scope } from "../shared/types";
 import { policies, topicOf } from "../shared/policies";
 import { api } from "./api";
+import { workspaceDate } from "../shared/dates";
 
 export default function CompanyResearch({ company, graph, onImported }: { company: CompanyProfile; graph: GraphState; onImported: () => Promise<void> }) {
-  const [website, setWebsite] = useState(company.website);
+  const [website, setWebsite] = useState(company.sandbox ? "https://ripple-company-brain.vercel.app/acme-policies.html" : company.website);
   const [result, setResult] = useState<ResearchResult>();
   const [history, setHistory] = useState<ResearchResult[]>([]);
   const [selected, setSelected] = useState<Record<string, Scope | "">>({});
-  const [effectiveFrom, setEffectiveFrom] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  const [effectiveFrom, setEffectiveFrom] = useState(workspaceDate(company));
   const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [notice, setNotice] = useState("");
   useEffect(() => { let active = true; void api<ResearchResult[]>("/research").then((items) => { if (active) { setHistory(items); setResult(items[0]); } }).catch((err: Error) => { if (active) setError(err.message); }); return () => { active = false; }; }, [company.id]);
   async function research() {

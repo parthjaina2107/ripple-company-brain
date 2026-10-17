@@ -27,7 +27,7 @@ export const requestSecurity: RequestHandler = (req, res, next) => {
   if (origin && !allowed.has(origin)) return void res.status(403).json({ error: "Origin not allowed." });
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Ripple-Company");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Ripple-Company, Idempotency-Key");
     return void res.sendStatus(204);
   }
   next();

@@ -22,7 +22,7 @@ Read `applicablePolicy` in `server/domain.ts`. It considers topic, approved stat
 
 Read `discoverPublicFindings`, `extractClaims` and `answerQuestion` in `server/ai.ts`. It extracts candidate numeric claims with exact source quotes and routes a question to the supported `get_policy_context` tool. The server validates structured output, topic, unit and quoted evidence. Final authoritative numbers are rendered from approved graph records. The agent does not generate arbitrary Cypher, autonomously approve policies, or invent external changes. This is a constrained assistant workflow, not a general autonomous research agent.
 
-The hosted showcase currently uses structured routing without a Gemini key. Its live graph answers prove database retrieval and applicability logic, not hosted LLM inference. Use the configured local workflow and the recorded live verification to demonstrate Gemini extraction and tool calling. Refund processing and payment-arrival questions are rejected before topic lookup because the refund eligibility window does not describe when money arrives.
+The hosted showcase uses live Gemini for extraction and supported question routing, with a shared daily allowance. Unsupported intent is rejected before provider calls. Refund processing and payment-arrival questions abstain because an eligibility window does not describe when money arrives. The authoritative value always comes from approved graph records, even when the model selects the tool.
 
 ## How does idempotency work?
 

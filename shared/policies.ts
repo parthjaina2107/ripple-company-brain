@@ -60,8 +60,26 @@ export function validClaimQuote(claim: { topic?: PolicyTopic; value: number; quo
   const quotedScope = /enterprise/i.test(claim.quote) ? "enterprise"
     : /self[- ]serve|new customers|new accounts/i.test(claim.quote) ? "new"
     : /all customers/i.test(claim.quote) ? "all" : undefined;
-  return content.includes(claim.quote) && topics.length === 1 && topics[0] === topic && quotedScope === claim.scope
+  return content.includes(claim.quote) && hasPolicyMeaning(topic, claim.quote) && topics.length === 1 && topics[0] === topic && quotedScope === claim.scope
     && Number.isInteger(claim.value) && claim.value >= 1 && claim.value <= 365
     && new RegExp(`\\b${claim.value}[- ]${unit}\\b`, "i").test(claim.quote)
     && !/\bnot\b|\bunless\b|\bexcept\b|\bif\b|\bno longer\b|\bused to\b/i.test(claim.quote);
+}
+
+// A number and a topic keyword alone do not establish what the duration means.
+export function hasPolicyMeaning(topic: PolicyTopic, text: string): boolean {
+  if (/\b(?:processing|processed|credited|payout|arrive|resolution|resolved|damaged|defective|shipping|business days|working days)\b/i.test(text)) return false;
+  switch (topic) {
+    case "refund_window": return /refund\s+(?:window|period)|return\s+(?:window|period)|(?:request|eligible|eligibility|claim).{0,50}refund|refund.{0,50}(?:after purchase|from purchase|of purchase)/i.test(text);
+    case "support_response": return /(?:initial|first).{0,30}(?:response|reply)|(?:support.{0,20}(?:respond|reply))/i.test(text);
+    case "cancellation_notice": return /(?:cancel.{0,30}notice|notice.{0,40}cancel|notice.{0,40}renewal)/i.test(text);
+    case "trial_duration": return /\b\d+[- ]day\s+(?:free\s+)?trial|trial.{0,30}(?:lasts?|duration|period|length|days)|(?:trial.{0,20}(?:for|of)\s+\d+)/i.test(text);
+  }
+}
+
+export function supportedQuestionTopic(text: string): PolicyTopic | "unsupported" {
+  const topics = matchingTopics(text);
+  if (topics.length !== 1 || /\b(?:password|export|data|features?|access|damaged|defective|conditions?|eligible|eligibility|exceptions?|fees?|cost|price|extend|extension|processing|processed|payout|credited|arrive|money|bank|resolution|resolve|opening|weekends?|credit card)\b/i.test(text)) return "unsupported";
+  if (!/\b(?:how long|how many|how much|how quickly|how soon|duration|length|window|period|notice|respond|response time|policy|policies|change|changed|history|days|hours)\b/i.test(text)) return "unsupported";
+  return topics[0];
 }

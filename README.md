@@ -8,11 +8,13 @@ For company login and official website research, start with [Company workspaces]
 
 Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declared submission track: **Track 03 — Company Brain**.
 
-**Hosted demo:** [Open Ripple](https://ripple-company-brain.vercel.app). Explore the shared Acme tour, then click **Try your own sandbox** to change policies, apply corrections and ask again in an isolated FalkorDB Cloud graph. Follow the [judge walkthrough](docs/JUDGE_SANDBOX.md). The hosted deployment uses structured question routing; Gemini is available in the configured local workflow. Confirm Vercel access before sharing with judges.
+**Hosted demo:** [Open Ripple](https://ripple-company-brain.vercel.app). Click **Try your own sandbox** for the guided question → change → review → publish → question flow in your own FalkorDB Cloud graph. Hosted Gemini extracts candidate claims and selects a read-only graph tool; approved graph values determine the answer. Follow the [judge walkthrough](docs/JUDGE_SANDBOX.md).
 
 Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). The demo video still needs to be recorded and linked before submission.
 
 See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
+
+Use [the presentation script](docs/PRESENTATION.md) for the demo narrative and accurate feature boundaries.
 
 See [security controls and verification](docs/SECURITY.md) for response headers, origin restrictions, signed sandbox sessions, server validation and shared FalkorDB rate limits.
 
@@ -25,7 +27,7 @@ See [security controls and verification](docs/SECURITY.md) for response headers,
 - Multi-hop dependency discovery using `ASSERTS` and `DEPENDS_ON` relationships.
 - Three outcomes: **confirmed contradiction**, **owner review required**, and **unaffected**.
 - Reviewed, targeted text corrections; original content, claim versions and correction history are preserved.
-- Download approved corrections as Markdown or JSON, including before/after text, policy provenance, evidence paths and a content checksum. External publication remains an owner action.
+- Download approved corrections as Markdown or JSON, including before/after text, policy provenance, evidence paths, actor and a content checksum. Explicitly publish applied copies to the controlled Acme sandbox site with a revision-checked receipt.
 - Stale revision / superseded-policy protection and idempotent apply operations.
 - Pasted-document claim extraction, explicit user review and graph ingestion.
 - Persistent policy lookup in a fresh session, with source references and tool traces.
@@ -145,7 +147,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-Open http://127.0.0.1:3001. Run one API process for the writable prototype; do not scale writable replicas against company graphs without a shared concurrency strategy. The [Vercel demo](https://ripple-company-brain.vercel.app) serves the frontend and Express API functions with FalkorDB Cloud as the knowledge database. `RIPPLE_SHARE_DEMO=true` disables company-account initialization and authenticated company writes; `VITE_SHARE_DEMO=true` opens the shared tour. `RIPPLE_SANDBOX_SECRET` enables separately authorized judge sandbox writes. Database credentials and session-signing secrets stay in server-side Vercel secrets. Hosting real company accounts requires persistent authentication storage, trusted HTTPS origins, a stable auth secret and email verification/recovery. Sandbox writes are serialized per running instance, not globally across serverless replicas.
+Open http://127.0.0.1:3001. FalkorDB saves enforce an atomic workspace revision precondition; a stale request returns 409 instead of restoring old text. Reads use one consistent snapshot and saves update only changed records. The [Vercel demo](https://ripple-company-brain.vercel.app) serves the frontend and Express API functions with FalkorDB Cloud as the knowledge database. `RIPPLE_SHARE_DEMO=true` disables company-account initialization; `VITE_SHARE_DEMO=true` opens the shared tour. `RIPPLE_SANDBOX_SECRET` authorizes isolated judge writes. Secrets stay server-side. Real hosted company accounts require durable authentication storage, trusted origins, email verification and recovery; those account services remain outside the public judge demo.
 
 ## Deliberate limits
 

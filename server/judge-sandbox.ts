@@ -38,8 +38,39 @@ export function graphFromCookie(cookie = "") {
   return verifySandboxToken(token, secret(), prefix());
 }
 export const sandboxCompany: CompanyProfile = { id: "judge-sandbox", name: "Acme sandbox", website: "", sandbox: true };
+function registryName() { return `ripple_sandbox_registry_${prefix().slice(3, 11)}`; }
+export async function cleanupExpiredSandboxes() {
+  const options = { url: process.env.FALKORDB_URL!, socket: { connectTimeout: 8000 }, disableOfflineQueue: true };
+  const db = await FalkorDB.connect(options);
+  (await db.connection).on("error", () => {});
+  try {
+    const pattern = new RegExp(`^${prefix()}(\\d{13})_[a-f0-9]{24}$`);
+    for (const name of await db.list()) {
+      const match = name.match(pattern);
+      if (match && Number(match[1]) <= Date.now()) await db.selectGraph(name).delete();
+    }
+    await db.selectGraph(registryName()).query("MATCH (l:Lease) WHERE l.expires <= $now DELETE l", { params: { now: Date.now() } });
+  } finally { await db.close(); }
+}
+
+export async function releaseSandbox(cookie?: string) {
+  const graph = graphFromCookie(cookie);
+  const options = { url: process.env.FALKORDB_URL!, socket: { connectTimeout: 8000 }, disableOfflineQueue: true };
+  const db = await FalkorDB.connect(options);
+  (await db.connection).on("error", () => {});
+  try {
+    const cached = services.get(graph); services.delete(graph);
+    if (cached) await cached.then((service) => (service.repo as FalkorRepository).close()).catch(() => {});
+    if ((await db.list()).includes(graph)) await db.selectGraph(graph).delete();
+    await db.selectGraph(registryName()).query("MATCH (l:Lease {name: $name}) DELETE l", { params: { name: graph } });
+  } finally { await db.close(); }
+}
 
 export async function sandboxService(graph: string) {
+  // Expired capabilities cannot retain an unbounded pool of warm clients.
+  for (const [name, cached] of services) if (Number(name.split("_")[2]) < Date.now()) {
+    services.delete(name); void cached.then((service) => (service.repo as FalkorRepository).close()).catch(() => {});
+  }
   let pending = services.get(graph);
   if (!pending) {
     pending = (async () => {
@@ -75,22 +106,29 @@ export async function startSandbox(cookie?: string) {
   try {
     const ownPattern = new RegExp(`^${prefix()}(\\d{13})_[a-f0-9]{24}$`);
     const now = Date.now();
-    let active = 0;
+    const active: string[] = [];
     for (const name of await db.list()) {
       const match = name.match(ownPattern);
       if (!match) continue;
-      if (Number(match[1]) > now) { active++; continue; }
+      if (Number(match[1]) > now) { active.push(name); continue; }
       // Only expired graphs in this dedicated sandbox namespace are disposable.
       const cached = services.get(name);
       services.delete(name);
       if (cached) await cached.then((service) => (service.repo as FalkorRepository).close()).catch(() => {});
       await db.selectGraph(name).delete();
     }
-    if (active >= 10) throw new DomainError("All ten judge sandboxes are currently in use. Please try later; the shared Acme tour is still available.", 503);
     const graph = `${prefix()}${now + sandboxLifetime}_${randomBytes(12).toString("hex")}`;
-    const repo = await FalkorRepository.connect(process.env.FALKORDB_URL, graph);
+    const registry = db.selectGraph(registryName());
+    await registry.query("MATCH (l:Lease) WHERE l.expires <= $now DELETE l", { params: { now } });
+    // Register pre-upgrade graphs without changing their contents or expiry.
+    if (active.length) await registry.query("UNWIND $leases AS row MERGE (l:Lease {name: row.name}) SET l.expires = row.expires", { params: { leases: active.map((name) => ({ name, expires: Number(name.split("_")[2]) })) } });
+    const reserved = await registry.query<{ name: string }>("MATCH (l:Lease) WITH count(l) AS used WHERE used < 10 CREATE (reservation:Lease {name: $name, expires: $expires}) RETURN reservation.name AS name", { params: { name: graph, expires: now + sandboxLifetime } });
+    if (!reserved.data?.length) throw new DomainError("All ten judge sandboxes are in use. Existing visitors can resume; use the Acme tour or retry later. Finish & release frees your slot.", 503);
+    let repo: FalkorRepository;
+    try { repo = await FalkorRepository.connect(process.env.FALKORDB_URL, graph); }
+    catch (error) { await registry.query("MATCH (l:Lease {name: $name}) DELETE l", { params: { name: graph } }); throw error; }
     try { await repo.save(createSeed()); }
-    catch (error) { await repo.close(); await db.selectGraph(graph).delete(); throw error; }
+    catch (error) { await repo.close(); await db.selectGraph(graph).delete(); await registry.query("MATCH (l:Lease {name: $name}) DELETE l", { params: { name: graph } }); throw error; }
     services.set(graph, Promise.resolve(new RippleService(repo)));
     return { graph, token: sandboxToken(graph, signingKey) };
   } finally { await db.close(); }
@@ -98,5 +136,5 @@ export async function startSandbox(cookie?: string) {
 
 export function sandboxOperationAllowed(method: string, path: string) {
   if (method === "GET") return /^\/(workspace|research|reviews\/[^/]+\/export)$/.test(path);
-  return method === "POST" && /^\/(ask|decisions|decisions\/[^/]+\/analyze|reviews\/[^/]+\/(apply|resolve)|documents|documents\/extract|research|research\/[^/]+\/approve)$/.test(path);
+  return method === "POST" && /^\/(ask|decisions|decisions\/[^/]+\/analyze|reviews\/[^/]+\/(apply|resolve|publish)|documents|documents\/extract|research|research\/[^/]+\/approve)$/.test(path);
 }

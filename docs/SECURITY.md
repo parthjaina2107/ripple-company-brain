@@ -20,11 +20,22 @@ The October 17 browser security report was checked against the deployed response
 
 ## Verification
 
-- `npm test`: 42 tests, including header parity between CDN configuration and Express, origin rejection, rate-limit 429/retry headers, failure-closed behavior, session tampering/expiry/namespace checks and company authorization.
+- `npm test`: 44 tests, including the original header/session/auth checks plus unsupported-intent, semantic extraction, sandbox research-to-impact and controlled publishing regressions.
 - `npm run build`: TypeScript and Vite production build.
 - `npm run check:judge`: actual Vercel HTTP adapter against Cloud, two visitor sessions, direct invalid writes/private website rejection, change/correction/export/recall and isolation. Only temporary verification graphs are removed.
 - `npm run check:rate`: concurrent atomic Cloud counters through two connections, identity separation and window expiry. The temporary security graph is removed.
 
 ## Remaining boundaries
 
-These application budgets are not a replacement for edge DDoS protection or distributed global sandbox quotas. Prototype sandbox provisioning/size limits and per-instance service queues do not establish enterprise concurrency guarantees. Judge sandboxes are for synthetic public demonstration data and expire; do not use them for private company records. No independent penetration test or comprehensive dependency audit is claimed.
+These application budgets do not replace edge DDoS protection or establish unlimited enterprise capacity. Judge sandboxes hold synthetic demonstration data, with two-hour access expiry and later scheduled physical cleanup. No independent penetration test is claimed.
+
+## Submission hardening
+
+- Single-query consistent snapshots and an atomic FalkorDB revision precondition prevent a stale server instance overwriting a later correction. Only changed records are upserted. Conflicts return 409 for explicit refresh/review.
+- Projected entity, relationship and byte limits apply to every Cloud save, including correction and research approval. Client request keys are retained after ambiguous failures; saved commands are deduplicated in graph metadata (the latest 500 keys).
+- Signed judge identities are used for sandbox budgets, with IP budgets for other callers and coarse global budgets. GET reads are limited. Expired counter pruning runs at most once per minute per warm instance, in bounded batches.
+- Sandbox lease count-and-reserve occurs in one atomic query. Finish & release removes the visitor's disposable graph and frees the reservation. Cleanup is namespace-scoped, during provisioning and at 03:00 UTC daily through an authenticated Cron endpoint.
+- Research uses a shared 40-second download deadline across redirects/pages, with the enclosing request cancelled before any later save. Provider requests are bounded to 30 seconds with OpenAI retries disabled. Hosted provider operations have a shared 200-call daily allowance.
+- New decision/research/correction records include a server-derived actor; correction exports include it. Controlled publications preserve source revision, decision and publisher. A checksum still is not a signature.
+- Request IDs, status and latency are logged without bodies, cookies, IPs or credentials. Health verifies an actual graph read. Vercel's build command runs tests before producing a deployable build. A GitHub Actions template is included in `docs/ci/verify.yml`; activating it requires a credential with workflow permission, which the existing Git credential lacks.
+- `npm run check:concurrency` verifies real two-connection stale-write rejection, duplicate-command rejection, size-limit rejection and backup restoration in disposable Cloud graphs.

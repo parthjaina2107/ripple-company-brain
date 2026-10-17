@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { FalkorDB } from "falkordb";
-import { graphFromCookie } from "../server/judge-sandbox.js";
+import { graphFromCookie, releaseSandbox } from "../server/judge-sandbox.js";
 
 // Exercise the exact Vercel handler over HTTP with two separate cookie jars.
 // Only graphs created by this test are eligible for cleanup.
@@ -19,6 +19,7 @@ const address = server.address();
 assert.ok(address && typeof address !== "string");
 const base = `http://127.0.0.1:${address.port}/api/judge`;
 const created = new Set<string>();
+const cookies: string[] = [];
 async function request(path: string, cookie = "", body?: unknown, origin = "https://ripple-company-brain.vercel.app") {
   const response = await fetch(`${base}?path=${encodeURIComponent(path)}`, {
     method: body === undefined ? "GET" : "POST",
@@ -34,10 +35,12 @@ try {
   assert.equal(a.response.status, 200);
   const cookieA = a.response.headers.get("set-cookie")!.split(";")[0];
   created.add(graphFromCookie(cookieA));
+  cookies.push(cookieA);
   const b = await request("/session", "", {});
   assert.equal(b.response.status, 200);
   const cookieB = b.response.headers.get("set-cookie")!.split(";")[0];
   created.add(graphFromCookie(cookieB));
+  cookies.push(cookieB);
   assert.equal(created.size, 2);
   assert.equal((await request("/workspace")).response.status, 401);
   assert.equal((await request("/workspace", cookieA + "invalid")).response.status, 401);
@@ -55,6 +58,11 @@ try {
   const exported = await request(`/reviews/${conflict.reviewId}/export`, cookieA);
   assert.equal(exported.response.status, 200);
   assert.match(exported.data.packet.corrected, /14-day/);
+  assert.match(exported.data.packet.actor, /^judge:/);
+  const published = await request(`/reviews/${conflict.reviewId}/publish`, cookieA, {});
+  assert.equal(published.response.status, 200);
+  assert.match(published.data.content, /14-day/);
+  assert.equal((await request(`/reviews/${conflict.reviewId}/publish`, cookieB, {})).response.status, 409);
   assert.equal((await ask(cookieA)).data.sources[0].value, 14);
   assert.equal((await ask(cookieB)).data.sources[0].value, 30);
   const resumed = await request("/session", cookieA, {});
@@ -71,7 +79,7 @@ try {
   const connectionOptions = { url: process.env.FALKORDB_URL!, socket: { connectTimeout: 8000 }, disableOfflineQueue: true };
   db = await FalkorDB.connect(connectionOptions);
   (await db.connection).on("error", () => {});
-  for (const graph of created) await db.selectGraph(graph).delete();
+  for (const cookie of cookies) await releaseSandbox(cookie);
   if ((await db.list()).includes(process.env.RIPPLE_SECURITY_GRAPH!)) await db.selectGraph(process.env.RIPPLE_SECURITY_GRAPH!).delete();
   await db.close();
   console.log(JSON.stringify({ temporaryJudgeGraphsRemoved: created.size }));

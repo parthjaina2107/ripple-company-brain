@@ -10,12 +10,15 @@ export type Kind =
   | "decision"
   | "review"
   | "correction"
-  | "research";
+  | "research"
+  | "publication";
 export type Classification = "conflict" | "review" | "unaffected";
 export type Relation =
   "DEPENDS_ON" | "ASSERTS" | "OWNED_BY" | "SUPERSEDES" | "CREATES" | "REPAIRS";
 
 export interface Entity {
+  actor?: string;
+  approvalReason?: string;
   sourceUrl?: string;
   retrievedAt?: string;
   sourceSystem?: string;
@@ -54,6 +57,8 @@ export interface Edge {
   active: boolean;
 }
 export interface GraphState {
+  revision?: number;
+  commands?: string[];
   nodes: Entity[];
   edges: Edge[];
 }
@@ -95,12 +100,12 @@ export interface Workspace {
   health: Health;
 }
 
-export interface CompanyProfile { id: string; name: string; website: string; demo?: boolean; sandbox?: boolean; }
+export interface CompanyProfile { id: string; name: string; website: string; demo?: boolean; sandbox?: boolean; expiresAt?: string; }
 export interface CorrectionExport {
   fileBase: string;
   markdown: string;
   packet: {
-    schemaVersion: 1; company: { id: string; name: string }; reviewId: string; correctionId: string; approvedAt: string | null;
+    schemaVersion: 1; company: { id: string; name: string }; reviewId: string; correctionId: string; approvedAt: string | null; actor?: string; approvalReason?: string;
     source: { id: string; title: string; url: string | null; revisionBefore: number; revisionAfter: number };
     policy: { id: string; area: string; value: number; unit: string; audience: Scope; effectiveFrom: string };
     decision: { id: string; title: string };

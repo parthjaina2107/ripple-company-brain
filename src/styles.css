@@ -2770,3 +2770,11 @@ h1 {
 }
 .correction-export { border-top: 1px solid var(--border, #dfe4d9); margin-top: 24px; padding-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .correction-export p { flex-basis: 100%; font-size: 13px; line-height: 1.7; }
+.judge-guide { padding: 24px; margin-bottom: 24px; }
+.judge-guide p { line-height: 1.7; margin: 12px 0; }
+.judge-steps { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
+.judge-steps button { flex: 1 1 150px; padding: 14px; border: 1px solid #d9e2d1; border-radius: 10px; background: #f4f7ef; color: #254833; text-align: left; line-height: 1.8; }
+.judge-steps small { color: #63705e; }
+.publication-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid #dfe4d9; }
+.published-copy { padding: 22px; margin-top: 20px; background: #f4f7ef; border-radius: 12px; }
+.published-copy p { white-space: pre-wrap; }

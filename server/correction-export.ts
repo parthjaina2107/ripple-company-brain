@@ -18,6 +18,7 @@ export function correctionExport(state: GraphState, reviewId: string, company: C
     schemaVersion: 1 as const,
     company: { id: company.id, name: company.name },
     reviewId: review.id, correctionId: correction.id, approvedAt: correction.createdAt || null,
+    actor: correction.actor || "Legacy record: actor unavailable", approvalReason: correction.approvalReason,
     source: { id: artifact.id, title: artifact.title, url: artifact.sourceUrl || null, revisionBefore: review.sourceRevision || 1, revisionAfter: (review.sourceRevision || 1) + 1 },
     policy: { id: policy.id, area: policies[topicOf(policy)].label, value: policy.value!, unit: policies[topicOf(policy)].unit, audience: policy.scope!, effectiveFrom: policy.effectiveFrom! },
     decision: { id: decision.id, title: decision.title },

@@ -13,9 +13,11 @@ import { policyTopics } from "../shared/policies.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { createAuth, companyProfile } from "./auth.js";
 import { CompanyWorkspaces } from "./company-workspaces.js";
-import { graphFromCookie, sandboxCompany, sandboxCookie, sandboxLifetime, sandboxOperationAllowed, sandboxService, startSandbox } from "./judge-sandbox.js";
+import { graphFromCookie, sandboxCompany, sandboxCookie, sandboxLifetime, sandboxOperationAllowed, sandboxService, startSandbox, releaseSandbox } from "./judge-sandbox.js";
 import { requestSecurity } from "./security.js";
 import { apiRateLimit, rateStore } from "./rate-limit.js";
+import { requestContext } from "./request-context.js";
+import { createHash, randomUUID } from "node:crypto";
 
 const date = z.iso.date();
 const scope = z.enum(["new", "enterprise", "all"]);
@@ -37,6 +39,12 @@ const app = express();
 // local SQLite auth database on serverless storage and protects shared demo data.
 const shareDemo = process.env.RIPPLE_SHARE_DEMO === "true";
 app.disable("x-powered-by");
+app.use((req, res, next) => {
+  const id = randomUUID(); const started = Date.now();
+  res.setHeader("X-Request-Id", id);
+  res.on("finish", () => console.info(JSON.stringify({ requestId: id, method: req.method, status: res.statusCode, elapsedMs: Date.now() - started })));
+  next();
+});
 app.use(requestSecurity);
 app.use(apiRateLimit(rateStore));
 const auth = shareDemo ? undefined : (await createAuth()).auth;
@@ -44,10 +52,15 @@ const companyWorkspaces = new CompanyWorkspaces();
 if (auth) app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json({ limit: "100kb" }));
 app.post("/api/judge/session", async (req, res) => {
-  const { token } = await startSandbox(req.headers.cookie);
+  const { token, graph } = await startSandbox(req.headers.cookie);
   res.setHeader("Cache-Control", "no-store");
   res.cookie(sandboxCookie, token, { httpOnly: true, secure: !!process.env.VERCEL, sameSite: "strict", path: "/api/judge", maxAge: sandboxLifetime });
-  res.json({ company: sandboxCompany });
+  res.json({ company: { ...sandboxCompany, expiresAt: new Date(Number(graph.split("_")[2])).toISOString() } });
+});
+app.post("/api/judge/release", async (req, res) => {
+  await releaseSandbox(req.headers.cookie);
+  res.clearCookie(sandboxCookie, { path: "/api/judge", httpOnly: true, secure: !!process.env.VERCEL, sameSite: "strict" });
+  res.json({ released: true });
 });
 app.get("/api/session", async (req, res) => {
   if (shareDemo)
@@ -78,24 +91,20 @@ async function connectWorkspace() {
 }
 await connectWorkspace();
 
-app.get("/api/health", (_req, res) =>
-  res.status(service && (service.repo.isReady?.() ?? true) ? 200 : 503).json({
-    ready: !!service && (service.repo.isReady?.() ?? true),
-    storage: process.env.RIPPLE_MODE || "preview",
-    error: startupError,
-  }),
-);
+app.get("/api/health", async (_req, res) => {
+  try { if (!service) throw new Error(); await service.repo.read(); res.json({ ready: true, storage: service.repo.mode }); }
+  catch { res.status(503).json({ ready: false, storage: process.env.RIPPLE_MODE, error: startupError || "Database is temporarily unavailable." }); }
+});
 app.use("/api", async (req, res, next) => {
   if (req.path.startsWith("/judge/")) {
     const path = req.path.replace(/^\/judge/, "");
     if (!sandboxOperationAllowed(req.method, path)) throw new DomainError("Unsupported sandbox operation.", 403);
     const graph = graphFromCookie(req.headers.cookie);
     const judgeService = await sandboxService(graph);
-    if (req.method === "POST" && ["/decisions", "/documents", "/research"].includes(path) && (await judgeService.repo.read()).nodes.length >= 400)
-      throw new DomainError("This sandbox has reached its demo size limit. You can still inspect and correct existing records.", 413);
     res.setHeader("Cache-Control", "no-store");
     res.locals.companyService = judgeService;
     res.locals.company = sandboxCompany;
+    res.locals.actor = `judge:${createHash("sha256").update(graph).digest("hex").slice(0, 16)}`;
     req.url = path;
   } else if (req.path.startsWith("/demo/")) {
     if (!(req.method === "GET" && (req.path === "/demo/workspace" || /^\/demo\/reviews\/[^/]+\/export$/.test(req.path))) && !(req.method === "POST" && req.path === "/demo/ask"))
@@ -122,18 +131,28 @@ app.use("/api", async (req, res, next) => {
     const company = companyProfile(org);
     res.locals.companyService = await companyWorkspaces.get(company);
     res.locals.company = company;
+    res.locals.actor = `user:${session.user.id}`;
   }
   if ((res.locals.companyService as RippleService).repo.isReady?.() === false)
     throw new DomainError(
       "The database connection is recovering. Retry in a moment; your saved data has not been replaced.",
       503,
     );
-  next();
+  const key = req.get("Idempotency-Key");
+  if (key && !/^[a-zA-Z0-9_-]{16,100}$/.test(key)) throw new DomainError("Invalid request key.", 400);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 90000);
+  res.on("close", () => { clearTimeout(timer); if (!res.writableEnded) controller.abort(); });
+  requestContext.run({ actor: res.locals.actor || "public-demo", command: key ? createHash("sha256").update(`${req.method}:${req.path}:${key}`).digest("hex") : undefined, signal: controller.signal }, next);
 });
 const currentService = (res: express.Response): RippleService => res.locals.companyService;
 app.get("/api/reviews/:id/export", async (req, res) =>
   res.json(await currentService(res).exportCorrection(req.params.id, res.locals.company)),
 );
+app.post("/api/reviews/:id/publish", async (req, res) => {
+  if (!res.locals.company.sandbox) throw new DomainError("Publishing is available only on the controlled Acme sandbox site.", 403);
+  res.json(await currentService(res).publish(req.params.id));
+});
 app.get("/api/workspace", async (_req, res) =>
   res.json({ ...await currentService(res).workspace(), company: res.locals.company }),
 );

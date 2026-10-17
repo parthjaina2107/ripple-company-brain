@@ -1,6 +1,7 @@
 let demoMode = false;
 let sandboxMode = false;
 let companyId: string | undefined;
+const pendingWrites = new Map<string, string>();
 export function setCompanyContext(id?: string) { companyId = id; }
 export function setDemoMode(enabled: boolean) { demoMode = enabled; sandboxMode = false; }
 export function setSandboxMode(enabled: boolean) { sandboxMode = enabled; if (enabled) demoMode = false; }
@@ -9,6 +10,10 @@ export async function api<T>(
   data?: unknown,
   options: { timeoutMs?: number } = {},
 ): Promise<T> {
+  const signature = JSON.stringify([companyId, sandboxMode, demoMode, path, data]);
+  const mutating = data !== undefined && !["/ask", "/documents/extract"].includes(path);
+  const key = mutating ? pendingWrites.get(signature) || crypto.randomUUID() : undefined;
+  if (key) pendingWrites.set(signature, key);
   // Reads should not leave the initial screen spinning indefinitely. Mutations
   // get a longer budget for model calls and are never automatically retried.
   const controller = new AbortController();
@@ -19,7 +24,7 @@ export async function api<T>(
   try {
     const response = await fetch(sandboxMode ? `/api/judge?path=${encodeURIComponent(path)}` : `/api${demoMode ? "/demo" : ""}${path}`, {
       method: data === undefined ? "GET" : "POST",
-      headers: { ...(data === undefined ? {} : { "Content-Type": "application/json" }), ...(!demoMode && companyId ? { "X-Ripple-Company": companyId } : {}) },
+      headers: { ...(data === undefined ? {} : { "Content-Type": "application/json" }), ...(key ? { "Idempotency-Key": key } : {}), ...(!demoMode && companyId ? { "X-Ripple-Company": companyId } : {}) },
       body: data === undefined ? undefined : JSON.stringify(data),
       signal: controller.signal,
     });
@@ -32,6 +37,7 @@ export async function api<T>(
         "The API is unavailable or restarting. Wait a moment and retry.",
       );
     }
+    if (response.ok || response.status < 500) pendingWrites.delete(signature);
     if (!response.ok)
       throw new Error(
         [result.error || "Request failed.", ...(result.details || [])].join(

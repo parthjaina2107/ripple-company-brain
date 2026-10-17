@@ -1,28 +1,36 @@
 # Try Ripple yourself
 
-Open [Ripple](https://ripple-company-brain.vercel.app) and click **Try your own sandbox** in the banner. No Ripple account is required. Each visitor receives a signed, HTTP-only session cookie and a separate FalkorDB graph containing synthetic Acme policies, sources, workflows and saved replies. The shared tour remains read-only.
+Open [Ripple](https://ripple-company-brain.vercel.app), then **Try your own sandbox**. No account is needed. The shared Acme tour stays read-only; each visitor gets an isolated writable FalkorDB graph and a signed HttpOnly session. Use synthetic data only.
 
 ## Five-minute walkthrough
 
-1. In **Ask Ripple**, select New self-serve and October 17, 2026. Ask `What is our refund window?` The fresh sandbox returns **30 days**.
-2. In **Change studio**, choose Refund / return window. Enter `Set refund window to 14 days`, value **14**, Approved, New self-serve, with effective and analysis dates October 17, 2026. Click **Record & analyze change**.
-3. Inspect a confirmed conflict and its graph evidence. Compare it with a workflow marked Needs review and the unaffected enterprise source.
-4. Open **Review queue** and apply one refund correction after reviewing the before/after text. Its stored source changes from 30 to 14 days, while history remains available.
-5. Filter reviews to Applied and export Markdown or JSON. The export includes the source, decision, evidence and content checksum; it does not publish an external website.
-6. Ask the refund question again: **14 days**. Refresh and repeat: **14 days**. Enterprise refund policy remains **60 days**. Approving the decision changes authoritative answers; applying the correction repairs stale source text.
-7. Try the other policy areas, add a document and extract its claims, or research a public HTTPS policy page and review its findings before approval. Hosted extraction/routing is structured; no hosted Gemini key is configured.
-8. Ask `How long does a refund take to process?` It should return no applicable policy because eligibility and payment-processing time differ.
+1. Use **1 · Ask the baseline**. Ask `What is our refund window?` with New self-serve and 17 October 2026. A fresh sandbox returns **30 days**, with approved graph evidence. The screen identifies live model routing.
+2. Use **2 · Record a change**. The guide fills Refund / return window, 14 days, Approved, New self-serve, and the demo date. Click **Record & analyze change**.
+3. Inspect the graph paths. Direct contradictory claims become Confirmed conflict; dependent workflows require owner review; enterprise records are preserved.
+4. Use **3 · Inspect & correct**. Open a pending confirmed refund conflict, compare the before/after text, and apply it. The original and correction history remain.
+5. Use **4 · Publish to Acme**. Click **Publish approved copy**. The controlled customer help centre displays the corrected source and a publication receipt. This surface belongs to your sandbox; it does not edit an unrelated company website.
+6. Use **5 · Ask again**: **14 days**. Refresh and repeat to demonstrate persistence. Enterprise still returns **60 days**; 1 October returns **30 days**. The policy decision changes authoritative answers; applying and publishing repair downstream copies.
+7. In Review queue, choose Applied and download Markdown or JSON. Check source revisions, decision, evidence, actor and SHA-256 checksum. The checksum is content integrity, not a digital signature.
+8. Try `Can trial users export data?`, `Can support reset my password?`, and `How long does a refund take to process?`. These abstain from unsupported policy claims.
 
-## Isolation and limits
+## Research and ingestion
 
-Return to the shared tour using the banner or workspace switcher. Opening your sandbox again in the same browser resumes its graph. A separate browser session receives a separate graph. Treat sandboxes as disposable: do not enter private company information.
+In **Policy research**, the prefilled URL is a [public fictional Acme policy page](https://ripple-company-brain.vercel.app/acme-policies.html). Research it, inspect exact quotes, explicitly select audiences and approve findings. Importing a changed value generates affected-source reviews. Researching an unchanged value does not duplicate the same source. The fixed public fixture and your sandbox's publishing surface have distinct purposes.
 
-Sessions expire two hours after creation. Expired sandbox graphs in the dedicated namespace are removed when a new session is provisioned; unrelated graphs are never included in that cleanup. Provisioning checks for ten active sandboxes, and each sandbox has a 400-node admission limit for new decisions/documents/research. These are prototype resource controls, not a distributed quota or concurrency guarantee. Concurrent writes across serverless instances are not covered by the per-instance operation queue.
+In **Knowledge library**, add a document, extract its claims, review and save. Example: `New self-serve customers have a 30-day refund window after purchase.` Then record a different approved refund duration to find the new source's contradiction. Ambiguous processing, conditional or unsupported statements are not treated as duration policies.
 
-Writable real-company accounts still require the local workflow and persistent authentication storage. Sandbox sessions do not grant access to those accounts or the shared tour's write routes.
+## Limits and restart
+
+Sessions expire two hours after creation. **Return to shared tour** preserves the sandbox for resumption. **Finish & release sandbox** deletes its disposable data after confirmation and frees its slot; then start a new one. Export corrections before releasing.
+
+FalkorDB atomically admits up to ten active sandbox leases. Every save enforces projected limits of 600 entities, 1,800 relationships and 1.5 MB of serialized graph data. Stale writes return 409 and ask you to refresh. Request keys prevent saved mutations being duplicated after an ambiguous retry. These are bounded hackathon resources, not unlimited enterprise capacity.
+
+Expired graphs are removed on provisioning and by a daily authenticated cleanup job. Two-hour access expiry is separate from physical deletion time. The daily shared AI allowance is 200 provider operations; request budgets also apply. When a limit or provider issue occurs, the UI reports it rather than inventing an answer.
+
+Real company membership/account management is available locally, requiring durable auth storage for hosted production use. Judges can exercise the complete synthetic policy workflow through the public sandbox.
 
 ## Verification
 
-`npm run check:judge` exercises the actual Vercel handler over local HTTP against Cloud with two signed cookie jars: change, native graph impact, correction, idempotent retry, export, recall, session resume, origin rejection, missing/forged-cookie rejection and visitor isolation. It deletes only the temporary sandbox graphs created by that verification run. It is an HTTP verification, not an automated browser recording.
+`npm run check:judge` tests the actual Vercel adapter over HTTP against Cloud: separate visitors, corrections, actor-aware exports, publishing and isolation. `npm run check:concurrency` tests two independent Cloud writers, stale-save rejection, request deduplication, capacity rejection and backup restoration. Both clean up their own disposable graphs.
 
-To enable hosted sandboxes, configure `RIPPLE_SANDBOX_SECRET` as a random server-side secret of at least 32 characters, alongside the existing Cloud connection settings. Never expose it through a `VITE_*` variable.
+`npx tsx scripts/check-deployment.ts https://ripple-company-brain.vercel.app` tests the public deployment, including live Gemini, public research/approval, change/correction/export/publication, audience/date exceptions and unsupported questions. It releases its test sandbox.

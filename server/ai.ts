@@ -15,7 +15,7 @@ import type {
   PolicyFinding,
 } from "../shared/types.js";
 import { applicablePolicy } from "./domain.js";
-import { policies, policyTopics, topicOf, policyStatement, matchingTopics, validClaimQuote, type PolicyTopic } from "../shared/policies.js";
+import { policies, policyTopics, topicOf, policyStatement, matchingTopics, validClaimQuote, hasPolicyMeaning, supportedQuestionTopic, type PolicyTopic } from "../shared/policies.js";
 import {
   getModelConfig,
   modelLabel,
@@ -35,7 +35,7 @@ const client = () =>
   new OpenAI({
     apiKey: process.env.OPENAI_API_KEY?.trim(),
     timeout: 30000,
-    maxRetries: 1,
+    maxRetries: 0,
   });
 const gemini = () =>
   new GoogleGenAI({
@@ -107,7 +107,7 @@ export async function discoverPublicFindings(pages: ResearchPage[]): Promise<Pol
   return candidates.filter((claim) => {
     const page = pages[claim.pageIndex]; const unit = policies[claim.topic].unit === "hours" ? "hours?" : "days?";
     const key = `${claim.pageIndex}:${claim.topic}:${claim.quote}`;
-    if (!page?.text.includes(claim.quote) || seen.has(key) || !Number.isInteger(claim.value) || claim.value < 1 || claim.value > 365 ||
+    if (!page?.text.includes(claim.quote) || !hasPolicyMeaning(claim.topic, claim.quote) || seen.has(key) || !Number.isInteger(claim.value) || claim.value < 1 || claim.value > 365 ||
       matchingTopics(claim.quote).length !== 1 || !policies[claim.topic].keywords.test(claim.quote) || !new RegExp(`\\b${claim.value}[- ]${unit}\\b`, "i").test(claim.quote) ||
       /\bnot\b|\bunless\b|\bexcept\b|\bif\b|\bno longer\b|\bused to\b/i.test(claim.quote)) return false;
     seen.add(key); return true;
@@ -116,9 +116,7 @@ export async function discoverPublicFindings(pages: ResearchPage[]): Promise<Pol
 }
 
 function offlineQuestionTopic(question: string): PolicyTopic | "unsupported" {
-  const topics = matchingTopics(question);
-  if (topics.length !== 1 || /credit card|extend|extension|price|cost|fee|processing|payment method|opening|resolution|resolve|weekend/i.test(question)) return "unsupported";
-  return topics[0];
+  return supportedQuestionTopic(question);
 }
 
 function asksAboutRefundPayment(question: string): boolean {
@@ -272,7 +270,7 @@ export async function answerQuestion(
   asOf: string,
 ): Promise<Answer> {
   const conversational = question.trim().toLowerCase().replace(/[.!?]+$/, "").trim();
-  const greeting = /^(hi|hello|hey)(?:\s+(?:there|ripple))?$|^good (morning|afternoon|evening)$/.test(conversational);
+  const greeting = /^(hi|hello|hey)(?:\s+(?:there|ripple))?$|^good\s?(morning|afternoon|evening|night)$/.test(conversational);
   const help = ["help", "what can you do", "how do i use ripple", "what is ripple"].includes(conversational);
   if (greeting || help) {
     return {
@@ -280,7 +278,7 @@ export async function answerQuestion(
       sources: [], paths: [], trace: [], mode: "guidance", asOf,
     };
   }
-  if (asksAboutRefundPayment(question))
+  if (asksAboutRefundPayment(question) || supportedQuestionTopic(question) === "unsupported")
     return contextAnswer(state, scope, asOf, "unsupported");
   if (getModelConfig().provider === "offline")
     return contextAnswer(

@@ -21,7 +21,8 @@ import { applicablePolicy } from "./domain.js";
 import { edge } from "./seed.js";
 import { modelLabel } from "./model-config.js";
 import { correctionExport } from "./correction-export.js";
-import { policies, topicOf, validClaimQuote } from "../shared/policies.js";
+import { policies, topicOf, validClaimQuote, hasPolicyMeaning } from "../shared/policies.js";
+import { requestContext } from "./request-context.js";
 
 export class RippleService {
   private researchRunning = false;
@@ -29,6 +30,22 @@ export class RippleService {
   constructor(public repo: Repository) {}
   exportCorrection(reviewId: string, company: import("../shared/types.js").CompanyProfile) {
     return this.serial(async () => correctionExport(await this.repo.read(), reviewId, company));
+  }
+  publish(reviewId: string) {
+    return this.serial(async () => {
+      const state = await this.repo.read();
+      const review = state.nodes.find((n) => n.id === reviewId && n.kind === "review");
+      const source = state.nodes.find((n) => n.id === review?.artifactId);
+      if (!review || review.status !== "applied" || !review.proposed || !source || source.content !== review.proposed)
+        throw new DomainError("Apply a current correction first. A superseded source cannot be published.", 409);
+      const id = `publication-${reviewId}`;
+      const existing = state.nodes.find((n) => n.id === id);
+      if (existing) return existing;
+      for (const old of state.nodes.filter((n) => n.kind === "publication" && n.artifactId === source.id)) old.status = "superseded";
+      const receipt = { id, kind: "publication" as const, title: source.title, content: source.content, artifactId: source.id, sourceRevision: source.revision, decisionId: review.decisionId, topic: source.topic, status: "published", createdAt: new Date().toISOString(), actor: requestContext.getStore()?.actor || "local-operator", approvalReason: "Explicitly published to the controlled Acme sandbox site" };
+      state.nodes.push(receipt); state.edges.push(edge(id, source.id, "DEPENDS_ON"));
+      await this.repo.save(state); return receipt;
+    });
   }
   // Serialize reads and writes in this single-process hackathon server to prevent lost updates.
   serial<T>(work: () => Promise<T>): Promise<T> {
@@ -174,16 +191,17 @@ export class RippleService {
     });
   }
   ask(question: string, scope: Scope, asOf: string) {
-    return this.serial(async () =>
-      answerQuestion(await this.repo.read(), question, scope, asOf),
-    );
+    // Read-only model latency must not hold the workspace mutation queue.
+    return this.repo.read().then((state) => answerQuestion(state, question, scope, asOf));
   }
 
   async researchWebsite(website: string) {
     if (this.researchRunning) throw new DomainError("Website research is already running for this workspace.", 409);
     this.researchRunning = true;
     try {
-      const source = await researchPages(website);
+      const parent = requestContext.getStore()?.signal;
+      const deadline = AbortSignal.timeout(40000);
+      const source = await researchPages(website, undefined, parent ? AbortSignal.any([parent, deadline]) : deadline);
       const findings = await discoverPublicFindings(source.pages);
       const result: ResearchResult = { id: `research-${randomUUID()}`, ...source, findings, createdAt: new Date().toISOString() };
       if (!findings.length) result.warnings.push("No supported numeric policies were found. Try a direct public policy URL. Nothing was inferred or approved.");
@@ -214,7 +232,7 @@ export class RippleService {
       const selected = selections.map((selection) => {
         const finding = result.findings.find((f) => f.id === selection.findingId);
         const page = finding && result.pages.find((p) => p.url === finding.sourceUrl);
-        if (!finding || !page?.text.includes(finding.quote)) throw new DomainError("A selected finding has no matching stored source quote.", 400);
+        if (!finding || !page?.text.includes(finding.quote) || !hasPolicyMeaning(finding.topic, finding.quote)) throw new DomainError("A selected finding has no supported, unambiguous source quote. Research again before approval.", 400);
         return { ...finding, scope: selection.scope };
       });
       const policyValues = new Map<string, number>();
@@ -224,6 +242,8 @@ export class RippleService {
         policyValues.set(key, finding.value);
       }
       const policyIds = new Map<string, string>(); let policiesCreated = 0;
+      const newDecisions: string[] = [];
+      if (!state.nodes.some((node) => node.id === "owner-company")) state.nodes.push({ id: "owner-company", kind: "owner", title: "Company policy team" });
       for (const finding of selected) {
         const key = `${finding.topic}:${finding.scope}`;
         if (policyIds.has(key)) continue;
@@ -234,6 +254,7 @@ export class RippleService {
           policy.sourceUrl = finding.sourceUrl;
           policy.quote = finding.quote;
           policiesCreated++;
+          newDecisions.push(decision.id);
         }
         policyIds.set(key, policy.id);
       }
@@ -266,9 +287,11 @@ export class RippleService {
         }
       }
       record.status = "approved";
+      const analyses = [];
+      for (const id of newDecisions) analyses.push(await this.analyzeState(state, id, effectiveFrom));
       reconcileReviews(state, effectiveFrom);
       await this.repo.save(state);
-      return { documentsCreated, policiesCreated };
+      return { documentsCreated, policiesCreated, analyses };
     });
   }
 }

@@ -55,7 +55,7 @@ async function main() {
     "new",
     "2026-10-16",
   );
-  assert.equal(unknown.mode, "model");
+  assert.equal(unknown.mode, "structured", "Unsupported intent is rejected before spending a model call");
   assert.equal(unknown.sources.length, 0);
   console.log(
     JSON.stringify({

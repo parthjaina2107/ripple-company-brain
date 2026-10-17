@@ -6,6 +6,9 @@ import { createSeed, expandCompanyKnowledge } from "./seed.js";
 import { handleDatabaseErrors } from "./database-lifecycle.js";
 import { refreshSampleData } from "./sample-data.js";
 import { reconcileReviews } from "./domain.js";
+import { DomainError } from "./domain.js";
+import { randomUUID } from "node:crypto";
+import { requestContext } from "./request-context.js";
 
 async function upgradeWorkspace(state: GraphState): Promise<boolean> {
   const before = JSON.stringify(state, null, 2);
@@ -115,6 +118,7 @@ export function buildGraphWrite(state: GraphState) {
   return { query: clauses.join("\n"), params };
 }
 export class FalkorRepository implements Repository {
+  private snapshots = new WeakMap<GraphState, Map<string, string>>();
   mode = "falkordb" as const;
   private constructor(
     private graph: ReturnType<FalkorDB["selectGraph"]>,
@@ -155,26 +159,43 @@ export class FalkorRepository implements Repository {
     }
   }
   async read(): Promise<GraphState> {
-    const [nodes, edges] = await Promise.all([
-      this.graph.roQuery<{ payload: string }>(
-        "MATCH (n:Entity) RETURN n.payload AS payload",
-      ),
-      this.graph.roQuery<{ payload: string }>(
-        "MATCH (a:Entity)-[r]->(b:Entity) RETURN r.payload AS payload",
-      ),
-    ]);
-    return {
-      nodes: (nodes.data ?? []).map((row) => JSON.parse(String(row.payload))),
-      edges: (edges.data ?? [])
-        .filter((row) => row.payload)
-        .map((row) => JSON.parse(String(row.payload))),
+    // One read query is a consistent snapshot, including the write precondition.
+    const result = await this.graph.roQuery<{ payload: string; category: string }>(
+      "MATCH (n:Entity) RETURN n.payload AS payload, 'node' AS category UNION ALL MATCH (:Entity)-[r]->(:Entity) RETURN r.payload AS payload, 'edge' AS category UNION ALL MATCH (m:RippleMeta {id: 'workspace'}) RETURN toString(coalesce(m.revision, 0)) AS payload, 'revision' AS category UNION ALL MATCH (m:RippleMeta {id: 'workspace'}) RETURN coalesce(m.commands, '[]') AS payload, 'commands' AS category",
+    );
+    const rows = result.data ?? [];
+    const state: GraphState = {
+      revision: Number(rows.find((row) => row.category === "revision")?.payload || 0),
+      commands: JSON.parse(String(rows.find((row) => row.category === "commands")?.payload || "[]")),
+      nodes: rows.filter((row) => row.category === "node").map((row) => JSON.parse(String(row.payload))),
+      edges: rows.filter((row) => row.category === "edge" && row.payload).map((row) => JSON.parse(String(row.payload))),
     };
+    this.snapshots.set(state, new Map([...state.nodes, ...state.edges].map((item) => [item.id, JSON.stringify(item)])));
+    return state;
   }
   async save(state: GraphState) {
-    // A constant query shape prevents large per-workspace cached plans from filling Cloud memory.
-    // One atomic query still upserts all records and preserves inactive relationships/history.
+    const context = requestContext.getStore();
+    if (context?.signal?.aborted) throw new DomainError("Request cancelled before saving. Refresh to see the current workspace.", 408);
+    if (context?.command && state.commands?.includes(context.command)) throw new DomainError("This request was already saved. Refresh the workspace to see its result.", 409);
+    const previous = this.snapshots.get(state);
+    if (context) for (const node of state.nodes) if (!previous?.has(node.id) && ["decision", "correction", "research"].includes(node.kind)) {
+      node.actor = context.actor;
+      node.approvalReason = node.kind === "correction" ? "Explicitly approved in the review queue" : "Submitted by workspace participant";
+    }
+    if (state.nodes.length > 600 || state.edges.length > 1800 || Buffer.byteLength(JSON.stringify(state)) > 1500000)
+      throw new DomainError("Workspace capacity reached. Export your corrections and start a fresh sandbox; this change was not saved.", 413);
     const write = buildGraphWrite(state);
-    await this.graph.query(write.query, { params: write.params });
+    // Validate the complete graph, then write only changed records.
+    if (previous) for (const [key, rows] of Object.entries(write.params)) write.params[key] = rows.filter((row) => previous.get(String(row.id)) !== row.payload);
+    const token = randomUUID();
+    const guarded = write.query.replace(/UNWIND \$/g, "MATCH (guard:RippleMeta {id: 'workspace'}) WITH guard WHERE guard.token = $token UNWIND $")
+      .replace("RETURN count(*) AS processed", "WITH count(*) AS processed MATCH (m:RippleMeta {id: 'workspace'}) RETURN m.token = $token AS accepted");
+    const result = await this.graph.query<{ accepted: boolean }>(
+      "MERGE (m:RippleMeta {id: 'workspace'}) WITH m WHERE coalesce(m.revision, 0) = $expected SET m.revision = $expected + 1, m.token = $token, m.commands = $commands WITH m " + guarded,
+      { params: { ...write.params, expected: state.revision ?? 0, token, commands: JSON.stringify([...(state.commands || []), ...(context?.command ? [context.command] : [])].slice(-500)) } },
+    );
+    if (!result.data?.[0]?.accepted) throw new DomainError("Another request changed this workspace. Refresh and review the latest data before retrying. Your change was not saved.", 409);
+    state.revision = (state.revision ?? 0) + 1;
   }
   async paths(target: string): Promise<EvidencePath[]> {
     const result = await this.graph.roQuery<{

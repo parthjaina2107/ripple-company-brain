@@ -15,6 +15,7 @@ import {
   Download,
   FileText,
   GitBranch,
+  Globe,
   History,
   LayoutDashboard,
   LoaderCircle,
@@ -42,10 +43,13 @@ import type {
 import { api } from "./api";
 import KnowledgeMap from "./KnowledgeMap";
 import CompanyResearch from "./CompanyResearch";
+import { workspaceDate } from "../shared/dates";
+import AcmeSite from "./AcmeSite";
 import { policies, policyTopics, topicOf, decisionIntent, decisionIssue, withDecisionValue, policyStatement, type PolicyTopic } from "../shared/policies";
 
 type Page =
   | "Overview"
+  | "Acme website"
   | "Policy research"
   | "Change studio"
   | "Knowledge library"
@@ -60,6 +64,7 @@ const navigation = [
   { label: "Review queue", icon: CheckCheck },
   { label: "Decision log", icon: History },
   { label: "Ask Ripple", icon: MessageSquare },
+  { label: "Acme website", icon: Globe },
 ] as const;
 const scopeLabel = (s?: Scope) =>
   s === "new"
@@ -110,7 +115,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis>();
-  const [asOf, setAsOf] = useState("2026-10-17");
+  const [asOf, setAsOf] = useState(workspaceDate(company));
   const [selected, setSelected] = useState<string>();
   const [selectedReview, setSelectedReview] = useState<string>();
   const [reviewTopic, setReviewTopic] = useState<PolicyTopic | "all">("all");
@@ -124,7 +129,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
   const [days, setDays] = useState("7");
   const [topic, setTopic] = useState<PolicyTopic>("trial_duration");
   const [scope, setScope] = useState<Scope>("new");
-  const [effectiveFrom, setEffectiveFrom] = useState("2026-10-17");
+  const [effectiveFrom, setEffectiveFrom] = useState(workspaceDate(company));
   const [approval, setApproval] = useState<"approved" | "proposed">("approved");
   const [question, setQuestion] = useState(
     "How long is the free trial for new customers?",
@@ -346,7 +351,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
         </button>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
-          {navigation.filter((item) => !company.demo || item.label !== "Policy research").map(({ label, icon: Icon }) => (
+          {navigation.filter((item) => (!company.demo || item.label !== "Policy research") && (company.sandbox || item.label !== "Acme website")).map(({ label, icon: Icon }) => (
             <button
               key={label}
               className={`nav-item ${page === label ? "active" : ""}`}
@@ -427,6 +432,13 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
         </header>
         <main>
           {company.sandbox ? <div className="demo-banner"><span><strong>Your interactive judge sandbox.</strong> Change policies, inspect impacts, apply corrections and ask again. Synthetic data in your own FalkorDB graph; expires after two hours.</span><button onClick={onAccount}>Return to shared tour <ArrowRight size={14} /></button></div> : company.demo ? <div className="demo-banner"><span>{hostedShareDemo ? "Explore the shared Acme tour, or open your own sandbox to try policy changes and corrections." : "This Acme workspace is a read-only synthetic demo. Your company will have separate data."}</span><button onClick={onAccount}>{hostedShareDemo ? "Try your own sandbox" : "Sign in or create a company"} <ArrowRight size={14} /></button></div> : null}
+          {company.sandbox ? <section className="card judge-guide"><h2>One policy changes. What else becomes wrong?</h2><p>Ripple follows document claims and workflow dependencies in FalkorDB, proposes evidence-backed fixes, and preserves the approved history. Demo date: 17 October 2026; audience: new self-serve customers.</p><div className="judge-steps">
+            <button onClick={() => { setQuestion("What is our refund window?"); setAskScope("new"); setAsOf("2026-10-17"); go("Ask Ripple"); }}>1 · Ask the baseline<br /><small>Initially 30 days</small></button>
+            <button onClick={() => { setTopic("refund_window"); setDays("14"); setDecisionTitle("Set refund window to 14 days"); setScope("new"); setEffectiveFrom("2026-10-17"); setAsOf("2026-10-17"); go("Change studio"); }}>2 · Record a change<br /><small>Set 14 days, then analyze</small></button>
+            <button onClick={() => { setReviewTopic("refund_window"); setReviewStatus("pending"); go("Review queue"); }}>3 · Inspect & correct<br /><small>Apply a confirmed conflict</small></button>
+            <button onClick={() => go("Acme website")}>4 · Publish to Acme<br /><small>See the customer copy change</small></button>
+            <button onClick={() => { setQuestion("What is our refund window?"); setAskScope("new"); go("Ask Ripple"); }}>5 · Ask again<br /><small>14 days with decision evidence</small></button>
+          </div><p>{workspace?.graph.nodes.filter((n) => n.kind === "correction").length || 0} corrections saved · {workspace?.graph.nodes.filter((n) => n.kind === "publication" && n.status === "published").length || 0} published copies. Refresh to verify persistence. Try Policy research and Knowledge library for imports; use Enterprise or 1 October to test exceptions and history.</p><button className="text-link" disabled={busy} onClick={() => { if (window.confirm("Delete this disposable sandbox and its changes? Export any corrections first. You can then start a fresh one.")) void run(async () => { await api("/release", {}); sessionStorage.removeItem("ripple-judge-active"); onAccount(); }); }}>Finish & release sandbox</button></section> : null}
           {workspace?.health.storage === "preview" ? (
             <div className="preview-banner">
               <Database size={15} />
@@ -483,7 +495,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
                       : `CONNECTED KNOWLEDGE · ${company.name.toUpperCase()}`}
                   </div>
                   <h1>
-                    {page === "Policy research" ? "Know the source. Then decide." : page === "Overview"
+                    {page === "Acme website" ? "From approved fix to published copy." : page === "Policy research" ? "Know the source. Then decide." : page === "Overview"
                       ? "See the whole ripple."
                       : page === "Change studio"
                         ? "One change. Every connection."
@@ -535,6 +547,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
               </div>
 
               {page === "Policy research" ? <CompanyResearch company={company} graph={graph!} onImported={refresh} /> : null}
+              {page === "Acme website" && company.sandbox ? <AcmeSite graph={graph!} refresh={refresh} /> : null}
               {page === "Overview" ? (
                 <>
                   <div className="stats-grid">

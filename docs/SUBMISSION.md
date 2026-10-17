@@ -10,7 +10,7 @@ When a company changes its refund window, which guides, workflows and saved agen
 
 ## What we built
 
-Ripple combines company login and separate company graphs with bounded research of public policy pages, exact-quote extraction, owner-approved baselines, change impact analysis, reviewed corrections and Markdown/JSON exports. In the configured local workflow, Gemini extracts candidate claims and chooses a supported read-only policy tool. Deterministic checks and human approval control writes. The hosted Acme showcase is read-only and uses structured routing without a live model key. This division is deliberate: interpretation can use a model while approved graph records determine authoritative policy answers.
+Ripple combines separate company graphs with bounded public-policy research, exact-quote extraction, owner-approved baselines, change impact analysis, reviewed corrections and Markdown/JSON exports. Hosted Gemini extracts candidate claims and selects a read-only policy tool; deterministic checks and explicit approval govern writes. A public tour leads into a personal writable sandbox with a guided five-step journey and a controlled Acme help centre where approved corrections can be published. Real company login and membership management are available locally.
 
 FalkorDB is the primary database for company knowledge, dependencies, policy versions, decisions, review tasks and correction history. Native Cypher traversals discover affected sources and return evidence paths. Removing the live database prevents company knowledge retrieval and repair; SQLite stores authentication records only. An explicitly labeled preview simulator exists for development and is not the submission runtime.
 
@@ -18,11 +18,11 @@ FalkorDB is the primary database for company knowledge, dependencies, policy ver
 
 The October 17 live verification used Gemini and FalkorDB Cloud together: an approved 30-day refund baseline, a 14-day change, a discovered conflicting source, an approved correction and export, then 14-day recall through a new database connection. Retrying correction application produced one correction record. A second company stayed empty. The fixture was synthetic, not misrepresented as an actual public company's policy.
 
-The deployed showcase was verified against FalkorDB Cloud. Requests carrying the live site's browser Origin header returned HTTP 200 for all four supported policy areas. Refund-processing and payment-arrival questions correctly returned no applicable policy instead of borrowing the refund eligibility window. All 37 automated tests and the production build passed. A separate Cloud rerun verified change, correction, export, idempotency, fresh-connection recall and company isolation using temporary test graphs.
+The release passes 44 automated tests and the production build. Cloud checks verify correction integrity with two concurrent server connections, command deduplication, capacity rejection and backup restoration. The public deployed HTTP walkthrough verifies live Gemini, public research and approval, change/correction/export/publication, historical and enterprise answers, unsupported-question rejection and persistent workspace state. Its disposable sandbox was released afterward.
 
 ## Scope and limits
 
-The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits its own stored copies and exports work; it does not publish to Slack, Notion, Drive or company websites. Website research supports public HTML/text on the supplied host, at most four pages. It cannot access private systems or interpret arbitrary conditional contracts. Real company accounts run locally with persistent SQLite authentication storage. The hosted tour now offers isolated, writable judge sandboxes in FalkorDB Cloud with signed sessions and two-hour expiry. Distributed writable collaboration is not implemented.
+The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits stored sources, exports packets and publishes explicitly approved copies to its controlled sandbox help centre. Arbitrary external-site, Slack, Notion and Drive publishing are outside this demo. Website research reads public HTML/text on the supplied host, at most four pages; unsupported conditions and contracts require human interpretation. Real company accounts use local persistent SQLite auth. Hosted judges receive signed two-hour sandbox sessions. Atomic database revision checks reject concurrent stale saves; this is not a claim of full enterprise collaboration or unlimited scale.
 
 ## Links and status
 
@@ -32,7 +32,7 @@ The current domain covers trial duration, refund windows, cancellation notice an
 - Verification: [VERIFICATION.md](VERIFICATION.md).
 - Demo rehearsal: [DEMO.md](DEMO.md).
 - Blog draft: [BLOG_POST.md](BLOG_POST.md).
-- Deployment: [live Acme demo](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud. Click **Try your own sandbox** for the full synthetic change/correction flow; see [judge instructions](JUDGE_SANDBOX.md). Confirm Vercel access before submission. Use local setup for real company accounts and live Gemini demonstrations.
+- Deployment: [live Acme demo](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud and Gemini. Click **Try your own sandbox** for the guided synthetic workflow; see [judge instructions](JUDGE_SANDBOX.md). Use local setup for real company accounts.
 - Demo video: not recorded yet; add the actual working video URL before submission.
 - Blog: written locally; add a published URL only after publishing and checking the event's submission process.
 

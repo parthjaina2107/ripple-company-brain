@@ -47,3 +47,15 @@ Node IDs and payloads are parameters; relationship types come from an applicatio
 The full query repeats the relationship group for each of six allowed types. The aggregation between groups carries one row through empty arrays. Its text stays constant as the dataset grows, avoiding a different cached execution plan for every workspace size. This fixed a measured plan-cache memory problem in the original implementation.
 
 No PageRank is used. Ranking by centrality would not establish which policy is authoritative, so it is deliberately absent from this workflow.
+
+## Atomic save precondition
+
+`FalkorRepository.read` uses one UNION query for entities, relationships and the metadata revision, giving a consistent snapshot. Save validates the entire projected graph, filters unchanged payloads and wraps the upserts above with a revision check:
+
+```cypher
+MERGE (m:RippleMeta {id: 'workspace'})
+WITH m WHERE coalesce(m.revision, 0) = $expected
+SET m.revision = $expected + 1, m.token = $token, m.commands = $commands
+```
+
+Each subsequent write group checks that the metadata still has this command's random token. The whole query is atomic. A stale revision cannot write any entity or edge and returns 409. Empty write groups still pass through aggregation, so the token guard is repeated for every group. The command-key list supports bounded retry deduplication. The Cloud regression runs two independent connections with deliberately ordered conflicting saves.

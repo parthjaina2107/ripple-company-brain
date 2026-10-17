@@ -1,6 +1,15 @@
 # Verification record
 
-## Security report fixes — October 17, 2026 (current)
+## Presentation release — October 17, 2026
+
+- 44 automated tests and TypeScript/Vite build pass. New regressions cover unrelated capability questions, refund settlement vs eligibility, sandbox research ownership, imported-policy impacts and controlled publishing.
+- `npm run check:judge` passes against Cloud through the actual HTTP adapter, including actor-aware exports and publication isolation.
+- `npm run check:concurrency` passes with independent Cloud connections: stale saves return 409; corrected text and audit stay intact. Duplicate-command and oversized-save rejection pass. Backup restoration preserves all entities and relationships. Disposable graphs are removed.
+- Live Gemini verification passes extraction and all four supported duration topics. Unsupported intent is rejected before provider calls.
+- The public production HTTP walkthrough passes live Gemini, public research/approval, 30-to-14-day change, correction, export, controlled publication, audience/date exceptions, unsupported intent and persisted retrieval. Its disposable sandbox is released.
+- Gemini and authenticated daily cleanup use server-side hosted secrets. The public canonical URL is accessible without Vercel sign-in; protected immutable URLs use authenticated CLI checks. Earlier entries below describe historical versions.
+
+## Earlier security report fixes — October 17, 2026
 
 - Confirmed wildcard CORS on static responses and missing response security headers. Added exact production CORS, CSP, frame denial, MIME-sniffing prevention, referrer/permissions policies and API no-store headers through CDN configuration and Express. Google Fonts/style attributes remain explicitly supported; scripts and connections are same-origin.
 - Added shared atomic FalkorDB rate counters for sandbox session requests, questions, research and writes, with 429/retry headers and fail-closed 503 behavior. Cloud concurrency/identity/window checks passed through two independent connections; the temporary graph was removed.

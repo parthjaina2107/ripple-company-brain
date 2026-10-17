@@ -24,7 +24,7 @@
 
 ## Storage and deployment
 
-The [hosted Acme demo](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud. The shared tour is read-only, while **Try your own sandbox** provisions a separate writable graph with a signed visitor session. See [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md) for limits and the full test flow. Company-account authentication is disabled on Vercel, and hosted routing/extraction is structured without a Gemini key. Run locally for real company accounts and memberships. Verify Vercel visitor access before sharing.
+The [hosted Acme demo](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud and Gemini. The shared tour is read-only; **Try your own sandbox** provisions a separate writable graph with a signed visitor session. See [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md) for the guided flow, research fixture, controlled publishing and resource limits. Company-account authentication remains local, where durable account/membership storage is available.
 
 In FalkorDB mode each organization has a graph name derived from its server-validated organization ID, never from a client-supplied graph name. Graph IDs are a naming convention; session and membership checks enforce access. Source snapshots, policies, decisions, evidence and reviews live in that graph. Preview mode uses separate local JSON files and is explicitly labeled as a simulator.
 

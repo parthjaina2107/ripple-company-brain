@@ -50,6 +50,11 @@ export async function withModelErrors<T>(work: () => Promise<T>): Promise<T> {
       `The selected ${config.provider} provider has no API key configured.`,
     );
   try {
+    if (process.env.VERCEL) {
+      const { rateStore } = await import("./rate-limit.js");
+      const budget = await rateStore.consume("global:model-calls", 86400000, Date.now());
+      if (budget.count > 200) throw new ModelError("The demo's daily AI allowance is used. Please return after the daily reset; saved graph evidence remains available.", 429);
+    }
     return await work();
   } catch (error) {
     if (error instanceof ModelError) throw error;

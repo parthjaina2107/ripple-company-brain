@@ -6,6 +6,7 @@
 - Added shared atomic FalkorDB rate counters for sandbox session requests, questions, research and writes, with 429/retry headers and fail-closed 503 behavior. Cloud concurrency/identity/window checks passed through two independent connections; the temporary graph was removed.
 - 42 automated tests, production build and the Cloud judge HTTP walkthrough passed. The walkthrough now also checks direct invalid decision data and private/local website submissions. Only its disposable judge/security graphs were cleaned up.
 - Reviewed the report's absent-backend/auth/validation claims against the actual signed-session and company-membership code. These claims did not describe the implementation. See [SECURITY.md](SECURITY.md) for controls and limitations.
+- Post-deployment checks passed on the production alias: page, bundle and health responses have the exact production CORS origin and all configured security headers; health is 200 with API `no-store`. A same-origin question returned 200 with a 30-request budget and 29 remaining; untrusted and localhost origins returned 403, and a missing sandbox cookie returned 401. The browser resumed the existing sandbox under the new CSP and successfully asked the refund question, receiving 14 days. A local screenshot records the result; no video was recorded.
 
 ## Interactive judge sandbox — October 17, 2026 (earlier verification)
 

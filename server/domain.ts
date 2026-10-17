@@ -110,7 +110,7 @@ export function analyze(
       return node && ["claim", "policy"].includes(node.kind) && topicOf(node) !== topic;
     })) continue;
     const item = byId.get(path.ids[0]);
-    if (!item || !["document", "workflow", "memory"].includes(item.kind))
+    if (!item || !["document", "workflow", "memory"].includes(item.kind) || ["superseded", "archived"].includes(item.status || ""))
       continue;
     const existing = byArtifact.get(item.id);
     // Prefer a claim-bearing path because it provides the source for contradiction checks.
@@ -289,7 +289,7 @@ export function reconcileReviews(state: GraphState, asOf: string): boolean {
     const newerThan = (candidate: Entity | undefined) => candidate && policy && candidate.id !== policy.id &&
       (candidate.effectiveFrom! > policy.effectiveFrom! || (candidate.effectiveFrom === policy.effectiveFrom &&
         ((candidate.createdAt || "") > (policy.createdAt || "") || (candidate.createdAt === policy.createdAt && (candidate.revision || 0) > (policy.revision || 0)))));
-    if (!policy || !artifact || policy.status !== "approved" || newerThan(current) || newerThan(audiencePolicy) || artifact.revision !== review.sourceRevision || artifact.content !== review.original) {
+    if (!policy || !artifact || ["superseded", "archived"].includes(artifact.status || "") || policy.status !== "approved" || newerThan(current) || newerThan(audiencePolicy) || artifact.revision !== review.sourceRevision || artifact.content !== review.original) {
       review.status = "stale";
       review.reason = "This review belongs to an older policy or source revision. Open the latest decision and refresh its impact report.";
       changed = true;
@@ -325,6 +325,8 @@ export function applyCorrection(
     );
   const artifact = state.nodes.find((n) => n.id === review.artifactId)!;
   const policy = state.nodes.find((n) => n.id === review.policyId)!;
+  if (!artifact || ["superseded", "archived"].includes(artifact.status || ""))
+    throw new DomainError("This source has been replaced. Analyze its current version before applying.");
   if (applicablePolicy(state, artifact.scope!, asOf, topicOf(policy))?.id !== policy.id)
     throw new DomainError(
       "Policy applicability has changed. Analyze the latest decision before applying.",

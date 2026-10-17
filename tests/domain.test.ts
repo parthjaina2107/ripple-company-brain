@@ -6,6 +6,7 @@ import {
   applicablePolicy,
   applyCorrection,
   createReviews,
+  reconcileReviews,
 } from "../server/domain.js";
 import { createSeed, edge } from "../server/seed.js";
 import { traverse } from "../server/repository.js";
@@ -122,6 +123,15 @@ test("stale source revisions and superseded policy versions block applying an ol
     () => applyCorrection(b.state, oldReview, "2026-10-17"),
     /applicability has changed/,
   );
+});
+
+test("replaced website sources retire their pending reviews and reject old corrections", () => {
+  const { state, result } = scenario();
+  const item = result.impacts.find((impact) => impact.artifact.id === "doc-support")!;
+  item.artifact.status = "superseded";
+  assert.throws(() => applyCorrection(state, item.reviewId!, input.asOf), /source has been replaced/);
+  reconcileReviews(state, input.asOf);
+  assert.equal(state.nodes.find((node) => node.id === item.reviewId)?.status, "stale");
 });
 test("historical lookups use effective dates and enterprise exceptions survive self-serve changes", () => {
   const { state } = scenario();

@@ -19,6 +19,7 @@ async function upgradeWorkspace(state: GraphState): Promise<boolean> {
 }
 
 export interface Repository {
+  graphName?: string;
   mode: "preview" | "falkordb";
   isReady?(): boolean;
   read(): Promise<GraphState>;
@@ -55,7 +56,7 @@ export function traverse(
 
 export class PreviewRepository implements Repository {
   mode = "preview" as const;
-  constructor(private file = resolve(".data/preview.json")) {}
+  constructor(private file = resolve(".data/preview.json"), private initialState: () => GraphState = createSeed) {}
   async read(): Promise<GraphState> {
     try {
       const state: GraphState = JSON.parse(await readFile(this.file, "utf8"));
@@ -63,7 +64,7 @@ export class PreviewRepository implements Repository {
       return state;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      const state = createSeed();
+      const state = this.initialState();
       await this.save(state);
       return state;
     }
@@ -119,6 +120,7 @@ export class FalkorRepository implements Repository {
     private graph: ReturnType<FalkorDB["selectGraph"]>,
     private connection: { isReady: boolean },
     private database: Pick<FalkorDB, "close">,
+    public graphName: string,
   ) {}
   isReady() {
     return this.connection.isReady;
@@ -146,7 +148,7 @@ export class FalkorRepository implements Repository {
     try {
       // Existing workspaces can connect read-only, including when writes are capacity-limited.
       if (!(await db.list()).includes(name)) await graph.query("MERGE (m:RippleMeta {id: 'workspace'}) RETURN m.id");
-      return new FalkorRepository(graph, connection, db);
+      return new FalkorRepository(graph, connection, db, name);
     } catch (error) {
       await db.close();
       throw error;

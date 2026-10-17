@@ -9,12 +9,15 @@ export type Kind =
   | "owner"
   | "decision"
   | "review"
-  | "correction";
+  | "correction"
+  | "research";
 export type Classification = "conflict" | "review" | "unaffected";
 export type Relation =
   "DEPENDS_ON" | "ASSERTS" | "OWNED_BY" | "SUPERSEDES" | "CREATES" | "REPAIRS";
 
 export interface Entity {
+  sourceUrl?: string;
+  retrievedAt?: string;
   sourceSystem?: string;
   originalTitle?: string;
   sampleVersion?: number;
@@ -87,9 +90,27 @@ export interface Health {
   graphName: string;
 }
 export interface Workspace {
+  company?: CompanyProfile;
   graph: GraphState;
   health: Health;
 }
+
+export interface CompanyProfile { id: string; name: string; website: string; demo?: boolean; }
+export interface CorrectionExport {
+  fileBase: string;
+  markdown: string;
+  packet: {
+    schemaVersion: 1; company: { id: string; name: string }; reviewId: string; correctionId: string; approvedAt: string | null;
+    source: { id: string; title: string; url: string | null; revisionBefore: number; revisionAfter: number };
+    policy: { id: string; area: string; value: number; unit: string; audience: Scope; effectiveFrom: string };
+    decision: { id: string; title: string };
+    evidence: Array<{ id: string; title: string; relationshipToNext: string | null }>;
+    original: string; corrected: string; contentSha256: string; externalPublication: false; instructions: string;
+  };
+}
+export interface ResearchPage { url: string; title: string; text: string; retrievedAt: string; }
+export interface PolicyFinding { id: string; topic: import("./policies.js").PolicyTopic; value: number; quote: string; sourceUrl: string; scope?: Scope; }
+export interface ResearchResult { id: string; website: string; pages: ResearchPage[]; findings: PolicyFinding[]; warnings: string[]; createdAt: string; approved?: boolean; }
 export interface DecisionInput {
   topic?: PolicyTopic;
   title: string;

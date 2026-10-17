@@ -9,6 +9,9 @@ import { DomainError } from "./domain.js";
 import { extractClaims } from "./ai.js";
 import { ModelError } from "./model-config.js";
 import { policyTopics } from "../shared/policies.js";
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
+import { createAuth, companyProfile } from "./auth.js";
+import { CompanyWorkspaces } from "./company-workspaces.js";
 
 const date = z.iso.date();
 const scope = z.enum(["new", "enterprise", "all"]);
@@ -27,8 +30,7 @@ const documentSchema = z.object({
 });
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "100kb" }));
-// Local single-workspace application. Reject cross-origin mutations; bind to loopback by default.
+// The API and session cookies share the frontend origin through the Vite proxy.
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const allowed = process.env.APP_ORIGIN;
@@ -44,6 +46,18 @@ app.use((req, res, next) => {
   )
     return res.status(403).json({ error: "Origin not allowed." });
   next();
+});
+const { auth } = await createAuth();
+const companyWorkspaces = new CompanyWorkspaces();
+app.all("/api/auth/*splat", toNodeHandler(auth));
+app.use(express.json({ limit: "100kb" }));
+app.get("/api/session", async (req, res) => {
+  const headers = fromNodeHeaders(req.headers);
+  const session = await auth.api.getSession({ headers });
+  if (!session) return res.json({ user: null, companies: [], activeCompany: null });
+  const companies = (await auth.api.listOrganizations({ headers })).map(companyProfile);
+  res.json({ user: { id: session.user.id, email: session.user.email }, companies,
+    activeCompany: companies.find((company) => company.id === session.session.activeOrganizationId) || null });
 });
 
 let service: RippleService | undefined;
@@ -71,24 +85,51 @@ app.get("/api/health", (_req, res) =>
     error: startupError,
   }),
 );
-app.use("/api", (_req, _res, next) => {
-  if (!service) throw new DomainError(startupError || "Server not ready.", 503);
-  if (service.repo.isReady?.() === false)
+app.use("/api", async (req, res, next) => {
+  if (req.path.startsWith("/demo/")) {
+    if (!(req.method === "GET" && (req.path === "/demo/workspace" || /^\/demo\/reviews\/[^/]+\/export$/.test(req.path))) && !(req.method === "POST" && req.path === "/demo/ask"))
+      throw new DomainError("The public Acme demo is read-only. Sign in to manage a company workspace.", 403);
+    if (!service) throw new DomainError(startupError || "Demo database is not ready.", 503);
+    res.locals.companyService = service;
+    res.locals.company = { id: "demo", name: "Acme", website: "", demo: true };
+    req.url = req.url.replace(/^\/demo/, "");
+  } else {
+    const headers = fromNodeHeaders(req.headers);
+    const session = await auth.api.getSession({ headers });
+    if (!session) throw new DomainError("Sign in to access company policies.", 401);
+    if (!session.session.activeOrganizationId) throw new DomainError("Create or select a company workspace first.", 409);
+    if (req.get("X-Ripple-Company") !== session.session.activeOrganizationId)
+      throw new DomainError("The active company changed in another tab. Reload and confirm the company before continuing.", 409);
+    const member = await auth.api.getActiveMember({ headers });
+    if (!member || member.organizationId !== session.session.activeOrganizationId) throw new DomainError("You are not a member of this company workspace.", 403);
+    if (req.method !== "GET" && req.path !== "/ask" && !member.role.split(",").some((role) => ["owner", "admin"].includes(role)))
+      throw new DomainError("Only company owners and administrators can approve policies or modify knowledge.", 403);
+    const org = await auth.api.getOrganization({ headers, query: { organizationId: session.session.activeOrganizationId } });
+    if (!org) throw new DomainError("Company workspace not found.", 404);
+    const company = companyProfile(org);
+    res.locals.companyService = await companyWorkspaces.get(company);
+    res.locals.company = company;
+  }
+  if ((res.locals.companyService as RippleService).repo.isReady?.() === false)
     throw new DomainError(
       "The database connection is recovering. Retry in a moment; your saved data has not been replaced.",
       503,
     );
   next();
 });
+const currentService = (res: express.Response): RippleService => res.locals.companyService;
+app.get("/api/reviews/:id/export", async (req, res) =>
+  res.json(await currentService(res).exportCorrection(req.params.id, res.locals.company)),
+);
 app.get("/api/workspace", async (_req, res) =>
-  res.json(await service!.workspace()),
+  res.json({ ...await currentService(res).workspace(), company: res.locals.company }),
 );
 app.post("/api/decisions", async (req, res) =>
-  res.status(201).json(await service!.decide(decisionSchema.parse(req.body))),
+  res.status(201).json(await currentService(res).decide(decisionSchema.parse(req.body))),
 );
 app.post("/api/decisions/:id/analyze", async (req, res) =>
   res.json(
-    await service!.reanalyze(
+    await currentService(res).reanalyze(
       req.params.id,
       z.object({ asOf: date }).parse(req.body).asOf,
     ),
@@ -96,7 +137,7 @@ app.post("/api/decisions/:id/analyze", async (req, res) =>
 );
 app.post("/api/reviews/:id/apply", async (req, res) =>
   res.json(
-    await service!.apply(
+    await currentService(res).apply(
       req.params.id,
       z.object({ asOf: date }).parse(req.body).asOf,
     ),
@@ -104,7 +145,7 @@ app.post("/api/reviews/:id/apply", async (req, res) =>
 );
 app.post("/api/reviews/:id/resolve", async (req, res) =>
   res.json(
-    await service!.resolve(
+    await currentService(res).resolve(
       req.params.id,
       z.object({ note: z.string().trim().min(5).max(1000) }).parse(req.body)
         .note,
@@ -132,13 +173,22 @@ app.post("/api/documents", async (req, res) => {
         .max(10),
     })
     .parse(req.body);
-  res.status(201).json(await service!.ingest(data, data.ownerId));
+  res.status(201).json(await currentService(res).ingest(data, data.ownerId));
 });
 app.post("/api/ask", async (req, res) => {
   const data = z
     .object({ question: z.string().trim().min(3).max(2000), scope, asOf: date })
     .parse(req.body);
-  res.json(await service!.ask(data.question, data.scope, data.asOf));
+  res.json(await currentService(res).ask(data.question, data.scope, data.asOf));
+});
+app.get("/api/research", async (_req, res) => res.json(await currentService(res).researchHistory()));
+app.post("/api/research", async (req, res) => {
+  const data = z.object({ website: z.string().url().max(2000) }).parse(req.body);
+  res.status(201).json(await currentService(res).researchWebsite(data.website));
+});
+app.post("/api/research/:id/approve", async (req, res) => {
+  const data = z.object({ effectiveFrom: date, selections: z.array(z.object({ findingId: z.string().min(1), scope })).min(1).max(16) }).parse(req.body);
+  res.json(await currentService(res).approveResearch(req.params.id, data.selections, data.effectiveFrom));
 });
 
 if (existsSync(resolve("dist/index.html"))) {

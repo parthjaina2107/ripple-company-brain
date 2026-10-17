@@ -30,12 +30,14 @@ export default function KnowledgeMap({
   onSelect,
   topic = "trial_duration",
   asOf = "2026-10-17",
+  dynamic = false,
 }: {
   graph: GraphState;
   impacts?: Impact[];
   onSelect: (id: string) => void;
   topic?: PolicyTopic;
   asOf?: string;
+  dynamic?: boolean;
 }) {
   const basePositions = topic === "trial_duration" ? positions : [
     { id: policies[topic].root, x: 430, y: 52 },
@@ -47,7 +49,7 @@ export default function KnowledgeMap({
     { id: `flow-${topic}`, x: 200, y: 378 },
   ];
   const basePolicyId = topic === "trial_duration" ? "policy-trial" : `policy-${topic}-new`;
-  const topicLabels = topic === "trial_duration" ? labels : {
+  const topicLabels: Record<string, string> = topic === "trial_duration" ? { ...labels } : {
     [policies[topic].root]: policies[topic].label,
     [basePolicyId]: "Self-serve policy",
     [`policy-${topic}-enterprise`]: "Enterprise policy",
@@ -66,7 +68,7 @@ export default function KnowledgeMap({
         (b.effectiveFrom || "").localeCompare(a.effectiveFrom || "") ||
         (b.createdAt || "").localeCompare(a.createdAt || ""),
     )[0];
-  const displayed =
+  const demoDisplayed =
     latest && latest.id !== basePolicyId
       ? [
           ...basePositions.map((p) =>
@@ -75,6 +77,24 @@ export default function KnowledgeMap({
           { id: latest.id, x: 180, y: 144 },
         ]
       : basePositions;
+  const currentPolicies = [...new Map((["new", "enterprise"] as const).flatMap((scope) => {
+    const policy = graph.nodes.filter((n) => n.kind === "policy" && n.status === "approved" && topicOf(n) === topic && n.effectiveFrom! <= asOf && (n.scope === scope || n.scope === "all"))
+      .sort((a, b) => b.effectiveFrom!.localeCompare(a.effectiveFrom!) || (b.createdAt || "").localeCompare(a.createdAt || "") || (b.revision || 0) - (a.revision || 0))[0];
+    return policy ? [[policy.id, policy] as const] : [];
+  })).values()];
+  const sourceIds = new Set(graph.nodes.filter((n) => n.kind === "claim" && n.status === "current" && topicOf(n) === topic && graph.edges.some((e) => e.active && e.type === "ASSERTS" && e.target === n.id)).map((n) => n.sourceId));
+  const currentSources = graph.nodes.filter((n) => ["document", "memory"].includes(n.kind) && n.status === "current" && sourceIds.has(n.id)).slice(0, 3);
+  const workflows = graph.nodes.filter((n) => n.kind === "workflow" && n.status === "current" && n.topic === topic).slice(0, 2);
+  const displayed = dynamic ? [
+    { id: policies[topic].root, x: 430, y: 52 },
+    ...currentPolicies.map((n, i) => ({ id: n.id, x: currentPolicies.length === 1 ? 430 : 250 + i * 380, y: 155 })),
+    ...currentSources.map((n, i) => ({ id: n.id, x: currentSources.length === 1 ? 430 : 160 + i * (540 / (currentSources.length - 1)), y: 285 })),
+    ...workflows.map((n, i) => ({ id: n.id, x: workflows.length === 1 ? 430 : 250 + i * 380, y: 390 })),
+  ] : demoDisplayed;
+  if (dynamic) for (const point of displayed) {
+    const name = graph.nodes.find((node) => node.id === point.id)?.title || "";
+    topicLabels[point.id] = name.length > 23 ? `${name.slice(0, 21)}…` : name;
+  }
   const lookup = new Map(displayed.map((p) => [p.id, p]));
   // Collapse hidden claim nodes, but derive every displayed connection from actual active edges.
   const links: [string, string][] = [];

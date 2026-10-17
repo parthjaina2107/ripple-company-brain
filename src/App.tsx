@@ -12,6 +12,7 @@ import {
   CircleHelp,
   Clock3,
   Database,
+  Download,
   FileText,
   GitBranch,
   History,
@@ -35,13 +36,17 @@ import type {
   Impact,
   Scope,
   Workspace,
+  CompanyProfile,
+  CorrectionExport,
 } from "../shared/types";
 import { api } from "./api";
 import KnowledgeMap from "./KnowledgeMap";
+import CompanyResearch from "./CompanyResearch";
 import { policies, policyTopics, topicOf, decisionIntent, decisionIssue, withDecisionValue, policyStatement, type PolicyTopic } from "../shared/policies";
 
 type Page =
   | "Overview"
+  | "Policy research"
   | "Change studio"
   | "Knowledge library"
   | "Review queue"
@@ -49,6 +54,7 @@ type Page =
   | "Ask Ripple";
 const navigation = [
   { label: "Overview", icon: LayoutDashboard },
+  { label: "Policy research", icon: Search },
   { label: "Change studio", icon: GitBranch },
   { label: "Knowledge library", icon: BookOpen },
   { label: "Review queue", icon: CheckCheck },
@@ -96,9 +102,9 @@ function Empty({ title, text }: { title: string; text: string }) {
   );
 }
 
-export default function App() {
+export default function App({ company, onAccount, onSignOut }: { company: CompanyProfile; onAccount: () => void; onSignOut?: () => void }) {
   const [workspace, setWorkspace] = useState<Workspace>();
-  const [page, setPage] = useState<Page>("Overview");
+  const [page, setPage] = useState<Page>(company.demo ? "Overview" : "Policy research");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
@@ -124,12 +130,12 @@ export default function App() {
   );
   const [answer, setAnswer] = useState<Answer>();
   const [askScope, setAskScope] = useState<Scope>("new");
-  const [docTitle, setDocTitle] = useState("Customer policy handbook");
+  const [docTitle, setDocTitle] = useState(company.demo ? "Customer policy handbook" : "");
   const [docContent, setDocContent] = useState(
-    "New self-serve customers receive a 14-day free trial. New self-serve customers have a 30-day refund window after purchase. New self-serve customers must give 30 days of cancellation notice before renewal. New self-serve customers receive an initial support response within 24 hours.",
+    company.demo ? "New self-serve customers receive a 14-day free trial. New self-serve customers have a 30-day refund window after purchase. New self-serve customers must give 30 days of cancellation notice before renewal. New self-serve customers receive an initial support response within 24 hours." : "",
   );
   const [extraction, setExtraction] = useState<Extraction>();
-  const [ownerId, setOwnerId] = useState("owner-product");
+  const [ownerId, setOwnerId] = useState(company.demo ? "owner-product" : "owner-company");
   const [reviewNote, setReviewNote] = useState("");
   const refresh = async () => setWorkspace(await api<Workspace>("/workspace"));
   useEffect(() => {
@@ -209,7 +215,7 @@ export default function App() {
   const graph = workspace?.graph;
   const artifacts =
     graph?.nodes.filter((n) =>
-      ["document", "workflow", "memory"].includes(n.kind),
+      ["document", "workflow", "memory"].includes(n.kind) && !["superseded", "archived"].includes(n.status || ""),
     ) || [];
   const reviews = graph?.nodes.filter((n) => n.kind === "review") || [];
   const pending = reviews.filter((n) => n.status === "pending");
@@ -288,6 +294,17 @@ export default function App() {
       setToast("Correction applied. The original is preserved in history.");
     });
   }
+  async function downloadCorrection(id: string, format: "md" | "json") {
+    await run(async () => {
+      const result = await api<CorrectionExport>(`/reviews/${encodeURIComponent(id)}/export`);
+      const blob = new Blob([format === "md" ? result.markdown : JSON.stringify(result.packet, null, 2)], { type: format === "md" ? "text/markdown;charset=utf-8" : "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a"); link.href = url; link.download = `${result.fileBase}.${format}`;
+      document.body.append(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setToast("Correction exported with approval evidence. The external source has not been published.");
+    });
+  }
   const go = (target: Page) => {
     setPage(target);
     setSearch("");
@@ -313,20 +330,18 @@ export default function App() {
         </a>
         <button
           className="workspace-switch"
-          onClick={() =>
-            setToast("Acme is the fictional workspace for this hackathon demo.")
-          }
+          onClick={onAccount}
         >
-          <span className="workspace-avatar">a</span>
+          <span className="workspace-avatar">{company.name.charAt(0).toUpperCase()}</span>
           <span>
-            <strong>Acme workspace</strong>
-            <small>Demo company</small>
+            <strong>{company.name} workspace</strong>
+            <small>{company.demo ? "Read-only demo" : "Switch company"}</small>
           </span>
           <ChevronDown size={15} />
         </button>
         <div className="nav-label">WORKSPACE</div>
         <nav aria-label="Main navigation">
-          {navigation.map(({ label, icon: Icon }) => (
+          {navigation.filter((item) => !company.demo || item.label !== "Policy research").map(({ label, icon: Icon }) => (
             <button
               key={label}
               className={`nav-item ${page === label ? "active" : ""}`}
@@ -370,16 +385,16 @@ export default function App() {
             />
           </div>
           <div className="profile">
-            <span className="profile-avatar">AT</span>
+            <span className="profile-avatar">{company.name.slice(0, 2).toUpperCase()}</span>
             <span>
-              <strong>Acme team</strong>
-              <small>Graph Hacks 2026</small>
+              <strong>{company.name} team</strong>
+              <small>{company.demo ? "Synthetic company data" : "Private company workspace"}</small>
             </span>
             <CircleHelp
               size={17}
               onClick={() =>
                 setToast(
-                  "Fictional data · single workspace · review every correction before applying.",
+                  company.demo ? "Read-only synthetic demo. Sign in to manage a separate company workspace." : "Review source evidence before approving policies or applying corrections.",
                 )
               }
             />
@@ -395,16 +410,18 @@ export default function App() {
           <div className="topbar-right">
             <span className="synthetic-label">
               <ShieldCheck size={14} />
-              Synthetic data
+              {company.demo ? "Synthetic demo data" : "Company workspace"}
             </span>
-            <span className="avatar-stack">
+            {onSignOut ? <button className="text-link" onClick={onSignOut}>Sign out</button> : null}
+            {company.demo ? <span className="avatar-stack">
               <i>P</i>
               <i>G</i>
               <i>S</i>
-            </span>
+            </span> : null}
           </div>
         </header>
         <main>
+          {company.demo ? <div className="demo-banner"><span>This Acme workspace is a read-only synthetic demo. Your company will have separate data.</span><button onClick={onAccount}>Sign in or create a company <ArrowRight size={14} /></button></div> : null}
           {workspace?.health.storage === "preview" ? (
             <div className="preview-banner">
               <Database size={15} />
@@ -458,10 +475,10 @@ export default function App() {
                     <span />
                     {page === "Overview"
                       ? "YOUR COMPANY, IN CONTEXT"
-                      : "CONNECTED KNOWLEDGE · ACME"}
+                      : `CONNECTED KNOWLEDGE · ${company.name.toUpperCase()}`}
                   </div>
                   <h1>
-                    {page === "Overview"
+                    {page === "Policy research" ? "Know the source. Then decide." : page === "Overview"
                       ? "See the whole ripple."
                       : page === "Change studio"
                         ? "One change. Every connection."
@@ -474,7 +491,7 @@ export default function App() {
                               : "Answers that know what changed."}
                   </h1>
                   <p>
-                    {page === "Overview"
+                    {page === "Policy research" ? "Research your company's public policies and approve the evidence that should guide its agents." : page === "Overview"
                       ? "Understand what changes, what it touches, and what needs your attention."
                       : page === "Change studio"
                         ? "Record a decision. Trace its impact. Keep everyone on the same page."
@@ -491,6 +508,7 @@ export default function App() {
                   {page === "Knowledge library" ? (
                     <button
                       className="primary"
+                      disabled={company.demo}
                       onClick={() => {
                         setShowUpload(true);
                         setExtraction(undefined);
@@ -511,6 +529,7 @@ export default function App() {
                 </div>
               </div>
 
+              {page === "Policy research" ? <CompanyResearch company={company} graph={graph!} onImported={refresh} /> : null}
               {page === "Overview" ? (
                 <>
                   <div className="stats-grid">
@@ -564,6 +583,7 @@ export default function App() {
                         </select>
                       </label>
                       <KnowledgeMap
+                        dynamic={!company.demo}
                         topic={topic}
                         asOf={asOf}
                         graph={graph!}
@@ -620,14 +640,13 @@ export default function App() {
                           </span>
                           <h3>Start with a small change.</h3>
                           <p>
-                            Try changing the free trial from 14 to 7 days. See
-                            how far the decision travels.
+                            {company.demo ? "This demo shows how policy decisions connect to company knowledge." : "Start by researching your official website and approving the findings that should guide your agents."}
                           </p>
                           <button
                             className="secondary"
-                            onClick={() => go("Change studio")}
+                            onClick={() => company.demo ? onAccount() : go("Policy research")}
                           >
-                            Explore a change <ArrowRight size={15} />
+                            {company.demo ? "Create your company workspace" : "Research company policies"} <ArrowRight size={15} />
                           </button>
                         </div>
                       )}
@@ -829,7 +848,7 @@ export default function App() {
                       </div>
                       <button
                         className="primary full"
-                        disabled={busy || !!draftIssue}
+                        disabled={busy || !!draftIssue || company.demo}
                         type="submit"
                       >
                         {busy ? (
@@ -894,7 +913,7 @@ export default function App() {
                         <Trace steps={analysis.trace} />
                         <button
                           className="text-link"
-                              disabled={busy}
+                          disabled={busy || company.demo}
                           onClick={() =>
                             run(async () => {
                               setAnalysis(
@@ -1121,7 +1140,7 @@ export default function App() {
                                 </p>
                                 <button
                                   className="primary"
-                                  disabled={busy}
+                                  disabled={busy || company.demo}
                                   onClick={() => applyReview(review.id)}
                                 >
                                   {busy ? (
@@ -1163,7 +1182,7 @@ export default function App() {
                                     placeholder="What did you check, and what needs to happen next?"
                                   />
                                 </label>
-                                <button className="primary" disabled={busy}>
+                                <button className="primary" disabled={busy || company.demo}>
                                   Record owner review <Check size={16} />
                                 </button>
                               </form>
@@ -1175,6 +1194,7 @@ export default function App() {
                               original text remain in the decision history.
                             </div>
                           )}
+                          {review.status === "applied" && review.classification === "conflict" ? <div className="correction-export"><p>Hand the approved correction to the document owner. Includes source, policy, graph evidence and a content checksum; downloading does not update the external source.</p><button className="secondary" disabled={busy} onClick={() => void downloadCorrection(review.id, "md")}><Download size={16} />Export correction (.md)</button><button className="text-link" disabled={busy} onClick={() => void downloadCorrection(review.id, "json")}>Download JSON</button></div> : null}
                         </div>
                       </section>
                     ) : null}
@@ -1228,7 +1248,7 @@ export default function App() {
                               {d.status === "invalid" ? <p className="notice">{d.reason}</p> : null}
                               <button
                                 className="text-link"
-                                disabled={busy || d.status === "invalid"}
+                                disabled={busy || d.status === "invalid" || company.demo}
                                 onClick={() =>
                                   run(async () => {
                                     setTopic(topicOf(d));
@@ -1541,8 +1561,9 @@ export default function App() {
             <p className="source-content">
               {selectedNode.content ||
                 selectedNode.quote ||
-                "A connected owner role in the fictional Acme workspace."}
+                `A connected policy owner in the ${company.name} workspace.`}
             </p>
+            {selectedNode.sourceUrl ? <p><a href={selectedNode.sourceUrl} target="_blank" rel="noreferrer">View original company source <ArrowUpRight size={14} /></a>{selectedNode.retrievedAt ? <small> · Retrieved {dateLabel(selectedNode.retrievedAt)}</small> : null}</p> : null}
             {selectedNode.value ? (
               <div className="policy-fact">
                 <strong>{selectedNode.value}</strong>

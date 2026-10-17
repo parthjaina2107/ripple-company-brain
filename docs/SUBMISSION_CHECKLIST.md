@@ -14,11 +14,11 @@ Current declared track: **Track 03 — Company Brain**. This is a readiness reco
 | Blog post | Draft written, not published | [BLOG_POST.md](BLOG_POST.md); review, publish, add actual URL |
 | Team technical understanding | Requires team rehearsal | [JUDGE_QA.md](JUDGE_QA.md); each person must explain their work |
 | Demo video | Not recorded | Follow [DEMO.md](DEMO.md); record and add the actual working URL before submission |
-| Deployment | Live, read-only | [Acme showcase](https://ripple-company-brain.vercel.app); native FalkorDB Cloud, structured routing, no hosted Gemini key |
-| Judge access | Needs confirmation | Vercel sign-in protection was enabled at the last deployment check; test access from a private window before sharing |
+| Deployment | Live tour and writable judge sandboxes | [Acme demo](https://ripple-company-brain.vercel.app); native FalkorDB Cloud, structured routing, no hosted Gemini key |
+| Judge access | Public HTTP access verified | Unauthenticated requests to the production page and health endpoint returned HTTP 200 without redirects |
 | Hosted QA fixes | Deployed and API-verified | Exact site Origin accepted; other origins rejected; refund-processing questions return no applicable policy; library has an empty-search state |
 | Interactive judge sandbox | Implemented and Cloud HTTP-verified | [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md); signed sessions, separate visitor graphs, change/correction/export/resume; no Ripple account needed |
-| Latest browser retest | Pending user confirmation | Hard-refresh, submit a question and try a nonsense library search; browser automation timed out during the latest repair |
+| Judge browser walkthrough | Passed | Started sandbox, recorded 14-day refund decision, saw native impacts, applied correction, asked again and received 14 days |
 | Latest code/docs package | Included in this update | Code, docs and tests are bundled; `.env`, `.data` and private artifacts are excluded |
 | Registration and event submission | Not verified/performed | Check the event portal and supply final links before the deadline |
 

@@ -315,7 +315,6 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
 
   return (
     <div className="app-shell">
-      {hostedShareDemo ? <div className="hosted-demo-banner">Shared read-only showcase · Explore the Acme policy graph, evidence, traces, and agent memory.</div> : null}
       <aside className="sidebar">
         <a
           className="brand"
@@ -423,7 +422,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
           </div>
         </header>
         <main>
-          {company.demo ? <div className="demo-banner"><span>This Acme workspace is a read-only synthetic demo. Your company will have separate data.</span><button onClick={onAccount}>Sign in or create a company <ArrowRight size={14} /></button></div> : null}
+          {company.demo ? <div className="demo-banner"><span>{hostedShareDemo ? "Shared read-only showcase · Explore the Acme policy graph, evidence, traces, and agent memory." : "This Acme workspace is a read-only synthetic demo. Your company will have separate data."}</span>{!hostedShareDemo ? <button onClick={onAccount}>Sign in or create a company <ArrowRight size={14} /></button> : null}</div> : null}
           {workspace?.health.storage === "preview" ? (
             <div className="preview-banner">
               <Database size={15} />

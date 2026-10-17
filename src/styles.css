@@ -2769,5 +2769,4 @@ h1 {
   .badge{font-size:8px}
 }
 .correction-export { border-top: 1px solid var(--border, #dfe4d9); margin-top: 24px; padding-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.hosted-demo-banner { background: #213e2b; color: #eef6ed; padding: 10px 24px; text-align: center; font-size: 13px; letter-spacing: .01em; }
 .correction-export p { flex-basis: 100%; font-size: 13px; line-height: 1.7; }

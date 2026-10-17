@@ -42,6 +42,7 @@ app.use((req, res, next) => {
     origin &&
     ![
       allowed,
+      "https://ripple-company-brain.vercel.app",
       "http://127.0.0.1:5173",
       "http://localhost:5173",
       `http://127.0.0.1:${process.env.PORT || 3001}`,

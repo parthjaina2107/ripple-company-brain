@@ -218,6 +218,10 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
     graph?.nodes.filter((n) =>
       ["document", "workflow", "memory"].includes(n.kind) && !["superseded", "archived"].includes(n.status || ""),
     ) || [];
+  const visibleArtifacts = artifacts.filter((n) =>
+    (filter === "all" || n.kind === filter) &&
+    `${n.title} ${n.content}`.toLowerCase().includes(search.toLowerCase()),
+  );
   const reviews = graph?.nodes.filter((n) => n.kind === "review") || [];
   const pending = reviews.filter((n) => n.status === "pending");
   const decisions =
@@ -1006,14 +1010,8 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
                       <span>AUDIENCE</span>
                       <span>REVISION</span>
                     </div>
-                    {artifacts
-                      .filter(
-                        (n) =>
-                          (filter === "all" || n.kind === filter) &&
-                          `${n.title} ${n.content}`
-                            .toLowerCase()
-                            .includes(search.toLowerCase()),
-                      )
+                    {!visibleArtifacts.length ? <div role="status"><Empty title="No records found" text="Try another search or choose a different knowledge type." /></div> : null}
+                    {visibleArtifacts
                       .map((n) => (
                         <button
                           className="table-row"

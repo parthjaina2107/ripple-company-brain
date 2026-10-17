@@ -121,6 +121,13 @@ function offlineQuestionTopic(question: string): PolicyTopic | "unsupported" {
   return topics[0];
 }
 
+function asksAboutRefundPayment(question: string): boolean {
+  // Eligibility after purchase and the time until money arrives are different
+  // policies. Enforce that boundary even if a model selects refund_window.
+  return /\brefunds?\b/i.test(question) &&
+    /\bprocess(?:ing|ed)?\b|\bpayout\b|\bcredited?\b|\barriv(?:e|es|al)\b|\breceiv(?:e|ing)\b|\bmoney\b|\bbank\b|\bpayment method\b/i.test(question);
+}
+
 export async function extractClaims(
   title: string,
   content: string,
@@ -273,6 +280,8 @@ export async function answerQuestion(
       sources: [], paths: [], trace: [], mode: "guidance", asOf,
     };
   }
+  if (asksAboutRefundPayment(question))
+    return contextAnswer(state, scope, asOf, "unsupported");
   if (getModelConfig().provider === "offline")
     return contextAnswer(
       state,

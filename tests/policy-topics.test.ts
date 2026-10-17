@@ -91,8 +91,11 @@ test("all topics extract with their own units and answer from their own policy",
       assert.equal(answer.sources[0].value, policies[topic].initial);
       assert.equal(answer.paths[0].ids.at(-1), policies[topic].root);
     }
-    for (const question of ["What does it cost?", "What is our refund processing time?", "What is the trial and refund window?"]) {
+    for (const question of ["What does it cost?", "What is our refund processing time?", "How long does a refund take to process?", "When will my refund arrive?", "When will the refund be credited to my bank?", "How long until I receive my refund?", "What is the trial and refund window?"]) {
       assert.equal((await answerQuestion(createSeed(), question, "new", base.asOf)).sources.length, 0);
+    }
+    for (const question of ["How long does our refund window last?", "How many days after purchase can I request a refund?", "What is our return policy?"]) {
+      assert.equal(topicOf((await answerQuestion(createSeed(), question, "new", base.asOf)).sources[0]), "refund_window");
     }
     assert.equal(validClaimQuote({ topic: "support_response", value: 24, scope: "new", quote: "New self-serve customers receive an initial support response within 24 days." }, "New self-serve customers receive an initial support response within 24 days."), false);
     assert.equal(validClaimQuote({ topic: "refund_window", value: 30, scope: "enterprise", quote: "New self-serve customers have a 30-day refund window." }, "New self-serve customers have a 30-day refund window."), false);

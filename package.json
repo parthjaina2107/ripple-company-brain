@@ -12,6 +12,7 @@
     "check:model": "tsx scripts/check-model.ts",
     "check:research": "tsx scripts/check-company-research.ts",
     "check:companies": "tsx scripts/check-company-isolation.ts",
+    "check:judge": "tsx scripts/check-judge-sandbox.ts",
     "check:live": "tsx scripts/check-company-isolation.ts --model",
     "check:reconnect": "tsx scripts/check-reconnect.ts"
   },

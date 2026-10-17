@@ -22,7 +22,7 @@ The deployed showcase was verified against FalkorDB Cloud. Requests carrying the
 
 ## Scope and limits
 
-The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits its own stored copies and exports work; it does not publish to Slack, Notion, Drive or company websites. Website research supports public HTML/text on the supplied host, at most four pages. It cannot access private systems or interpret arbitrary conditional contracts. The writable company workflow runs locally with persistent SQLite authentication storage; the hosted deployment exposes the read-only synthetic Acme showcase. Distributed writable collaboration is not implemented.
+The current domain covers trial duration, refund windows, cancellation notice and initial support response times. Ripple edits its own stored copies and exports work; it does not publish to Slack, Notion, Drive or company websites. Website research supports public HTML/text on the supplied host, at most four pages. It cannot access private systems or interpret arbitrary conditional contracts. Real company accounts run locally with persistent SQLite authentication storage. The hosted tour now offers isolated, writable judge sandboxes in FalkorDB Cloud with signed sessions and two-hour expiry. Distributed writable collaboration is not implemented.
 
 ## Links and status
 
@@ -32,7 +32,7 @@ The current domain covers trial duration, refund windows, cancellation notice an
 - Verification: [VERIFICATION.md](VERIFICATION.md).
 - Demo rehearsal: [DEMO.md](DEMO.md).
 - Blog draft: [BLOG_POST.md](BLOG_POST.md).
-- Deployment: [live Acme showcase](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud. Vercel sign-in protection was enabled at the last deployment check; confirm judge access before submission. Use local setup for writable company workflows and live Gemini demonstrations.
+- Deployment: [live Acme demo](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud. Click **Try your own sandbox** for the full synthetic change/correction flow; see [judge instructions](JUDGE_SANDBOX.md). Confirm Vercel access before submission. Use local setup for real company accounts and live Gemini demonstrations.
 - Demo video: not recorded yet; add the actual working video URL before submission.
 - Blog: written locally; add a published URL only after publishing and checking the event's submission process.
 

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Building2, Globe, LoaderCircle, ShieldCheck, Waves } from "lucide-react";
 import type { CompanyProfile } from "../shared/types";
 import { authClient } from "./auth-client";
-import { setDemoMode, setCompanyContext } from "./api";
+import { setDemoMode, setCompanyContext, setSandboxMode } from "./api";
 import App from "./App";
 
 type Session = { user: { id: string; email: string } | null; companies: CompanyProfile[]; activeCompany: CompanyProfile | null };
@@ -11,6 +11,10 @@ const hostedShareDemo = import.meta.env.VITE_SHARE_DEMO === "true";
 if (hostedShareDemo) setDemoMode(true);
 
 export default function AuthGate() {
+  const [sandbox, setSandbox] = useState<CompanyProfile>();
+  const [startingSandbox, setStartingSandbox] = useState(false);
+  const [sandboxError, setSandboxError] = useState("");
+  const openingSandbox = useRef(false);
   const [session, setSession] = useState<Session>();
   const [demo, setDemo] = useState(false);
   const [view, setView] = useState<"signin" | "signup" | "companies">("signin");
@@ -27,12 +31,38 @@ export default function AuthGate() {
     if (busy) return; setBusy(true); setError("");
     try { await work(); } catch (err) { setError(err instanceof Error ? err.message : "The operation failed. Try again."); } finally { setBusy(false); }
   }
+  async function openSandbox() {
+    if (openingSandbox.current) return;
+    openingSandbox.current = true;
+    setStartingSandbox(true); setSandboxError("");
+    try {
+      const response = await fetch("/api/judge?path=/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", signal: AbortSignal.timeout(45000) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Unable to start the sandbox. Try again.");
+      setSandboxMode(true); setSandbox(result.company);
+      sessionStorage.setItem("ripple-judge-active", "true");
+    } catch (err) {
+      setSandboxError(err instanceof Error ? err.message : "Unable to start the sandbox.");
+    } finally { openingSandbox.current = false; setStartingSandbox(false); }
+  }
+  useEffect(() => {
+    if (hostedShareDemo && sessionStorage.getItem("ripple-judge-active") === "true") void openSandbox();
+  }, []);
+  function returnToTour() {
+    sessionStorage.removeItem("ripple-judge-active");
+    setDemoMode(true); setSandbox(undefined); setSandboxError("");
+  }
   async function signOut() {
     const result = await authClient.signOut();
     if (result.error) { setView("companies"); throw new Error(result.error.message); }
     setPassword(""); setDemo(false); setDemoMode(false); setView("signin"); await refresh();
   }
-  if (hostedShareDemo) return <App key="hosted-public-demo" company={{ id: "demo", name: "Acme", website: "", demo: true }} onAccount={() => undefined} />;
+  if (hostedShareDemo) return <>
+    {sandboxError ? <div className="error-banner" role="alert">{sandboxError}</div> : null}
+    {startingSandbox ? <div className="auth-loading"><LoaderCircle className="spin" />Opening your isolated FalkorDB sandbox…</div> : sandbox
+      ? <App key="judge-sandbox" company={sandbox} onAccount={returnToTour} />
+      : <App key="hosted-public-demo" company={{ id: "demo", name: "Acme", website: "", demo: true }} onAccount={() => void openSandbox()} />}
+  </>;
   if (!session) return <div className="auth-loading"><LoaderCircle className="spin" />Checking your workspace session…</div>;
   if (demo) return <App key="public-demo" company={{ id: "demo", name: "Acme", website: "", demo: true }} onAccount={() => { setDemo(false); setDemoMode(false); }} />;
   if (session.user && session.activeCompany && view !== "companies") return <App key={session.activeCompany.id} company={session.activeCompany} onAccount={() => setView("companies")} onSignOut={() => void execute(signOut)} />;

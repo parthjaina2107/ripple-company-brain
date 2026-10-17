@@ -95,7 +95,7 @@ export interface Workspace {
   health: Health;
 }
 
-export interface CompanyProfile { id: string; name: string; website: string; demo?: boolean; }
+export interface CompanyProfile { id: string; name: string; website: string; demo?: boolean; sandbox?: boolean; }
 export interface CorrectionExport {
   fileBase: string;
   markdown: string;

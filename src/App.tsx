@@ -105,7 +105,7 @@ function Empty({ title, text }: { title: string; text: string }) {
 
 export default function App({ company, onAccount, onSignOut }: { company: CompanyProfile; onAccount: () => void; onSignOut?: () => void }) {
   const [workspace, setWorkspace] = useState<Workspace>();
-  const [page, setPage] = useState<Page>(company.demo ? "Overview" : "Policy research");
+  const [page, setPage] = useState<Page>(company.demo || company.sandbox ? "Overview" : "Policy research");
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
@@ -131,12 +131,12 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
   );
   const [answer, setAnswer] = useState<Answer>();
   const [askScope, setAskScope] = useState<Scope>("new");
-  const [docTitle, setDocTitle] = useState(company.demo ? "Customer policy handbook" : "");
+  const [docTitle, setDocTitle] = useState(company.demo || company.sandbox ? "Customer policy handbook" : "");
   const [docContent, setDocContent] = useState(
-    company.demo ? "New self-serve customers receive a 14-day free trial. New self-serve customers have a 30-day refund window after purchase. New self-serve customers must give 30 days of cancellation notice before renewal. New self-serve customers receive an initial support response within 24 hours." : "",
+    company.demo || company.sandbox ? "New self-serve customers receive a 14-day free trial. New self-serve customers have a 30-day refund window after purchase. New self-serve customers must give 30 days of cancellation notice before renewal. New self-serve customers receive an initial support response within 24 hours." : "",
   );
   const [extraction, setExtraction] = useState<Extraction>();
-  const [ownerId, setOwnerId] = useState(company.demo ? "owner-product" : "owner-company");
+  const [ownerId, setOwnerId] = useState(company.demo || company.sandbox ? "owner-product" : "owner-company");
   const [reviewNote, setReviewNote] = useState("");
   const refresh = async () => setWorkspace(await api<Workspace>("/workspace"));
   useEffect(() => {
@@ -340,7 +340,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
           <span className="workspace-avatar">{company.name.charAt(0).toUpperCase()}</span>
           <span>
             <strong>{company.name} workspace</strong>
-            <small>{company.demo ? "Read-only demo" : "Switch company"}</small>
+            <small>{company.sandbox ? "Return to shared tour" : company.demo ? "Read-only demo" : "Switch company"}</small>
           </span>
           <ChevronDown size={15} />
         </button>
@@ -393,13 +393,13 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
             <span className="profile-avatar">{company.name.slice(0, 2).toUpperCase()}</span>
             <span>
               <strong>{company.name} team</strong>
-              <small>{company.demo ? "Synthetic company data" : "Private company workspace"}</small>
+              <small>{company.demo || company.sandbox ? "Synthetic company data" : "Private company workspace"}</small>
             </span>
             <CircleHelp
               size={17}
               onClick={() =>
                 setToast(
-                  company.demo ? "Read-only synthetic demo. Sign in to manage a separate company workspace." : "Review source evidence before approving policies or applying corrections.",
+                  company.sandbox ? "Your isolated sandbox lasts two hours. Changes stay in its own FalkorDB graph." : company.demo ? "Read-only synthetic demo. Open a judge sandbox to try changes." : "Review source evidence before approving policies or applying corrections.",
                 )
               }
             />
@@ -415,7 +415,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
           <div className="topbar-right">
             <span className="synthetic-label">
               <ShieldCheck size={14} />
-              {company.demo ? "Synthetic demo data" : "Company workspace"}
+              {company.demo || company.sandbox ? "Synthetic demo data" : "Company workspace"}
             </span>
             {onSignOut ? <button className="text-link" onClick={onSignOut}>Sign out</button> : null}
             {company.demo ? <span className="avatar-stack">
@@ -426,7 +426,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
           </div>
         </header>
         <main>
-          {company.demo ? <div className="demo-banner"><span>{hostedShareDemo ? "Shared read-only showcase · Explore the Acme policy graph, evidence, traces, and agent memory." : "This Acme workspace is a read-only synthetic demo. Your company will have separate data."}</span>{!hostedShareDemo ? <button onClick={onAccount}>Sign in or create a company <ArrowRight size={14} /></button> : null}</div> : null}
+          {company.sandbox ? <div className="demo-banner"><span><strong>Your interactive judge sandbox.</strong> Change policies, inspect impacts, apply corrections and ask again. Synthetic data in your own FalkorDB graph; expires after two hours.</span><button onClick={onAccount}>Return to shared tour <ArrowRight size={14} /></button></div> : company.demo ? <div className="demo-banner"><span>{hostedShareDemo ? "Explore the shared Acme tour, or open your own sandbox to try policy changes and corrections." : "This Acme workspace is a read-only synthetic demo. Your company will have separate data."}</span><button onClick={onAccount}>{hostedShareDemo ? "Try your own sandbox" : "Sign in or create a company"} <ArrowRight size={14} /></button></div> : null}
           {workspace?.health.storage === "preview" ? (
             <div className="preview-banner">
               <Database size={15} />
@@ -651,7 +651,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
                             className="secondary"
                             onClick={() => company.demo ? onAccount() : go("Policy research")}
                           >
-                            {company.demo ? "Create your company workspace" : "Research company policies"} <ArrowRight size={15} />
+                            {company.demo && hostedShareDemo ? "Try your own sandbox" : company.demo ? "Create your company workspace" : "Research company policies"} <ArrowRight size={15} />
                           </button>
                         </div>
                       )}
@@ -843,7 +843,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
                         </label>
                       </div>
                       {draftIssue ? <p className="notice" role="alert">{draftIssue}</p> : null}
-                      {days && !draftIssue ? <div className="decision-preview" role="status"><strong>Ready to record · {policies[topic].label}</strong><p>{policyStatement(topic, Number(days), scope)}</p></div> : null}
+                      {days && !draftIssue ? <div className="decision-preview" role="status"><strong>{company.demo ? "Draft preview" : "Ready to record"} · {policies[topic].label}</strong><p>{policyStatement(topic, Number(days), scope)}</p>{company.demo ? <p>Open your own sandbox using the banner above to record and analyze this change.</p> : null}</div> : null}
                       <div className="form-note">
                         <ShieldCheck size={17} />
                         <span>

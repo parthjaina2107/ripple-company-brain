@@ -1,7 +1,9 @@
 let demoMode = false;
+let sandboxMode = false;
 let companyId: string | undefined;
 export function setCompanyContext(id?: string) { companyId = id; }
-export function setDemoMode(enabled: boolean) { demoMode = enabled; }
+export function setDemoMode(enabled: boolean) { demoMode = enabled; sandboxMode = false; }
+export function setSandboxMode(enabled: boolean) { sandboxMode = enabled; if (enabled) demoMode = false; }
 export async function api<T>(
   path: string,
   data?: unknown,
@@ -15,7 +17,7 @@ export async function api<T>(
     options.timeoutMs ?? (data === undefined ? 15000 : 60000),
   );
   try {
-    const response = await fetch(`/api${demoMode ? "/demo" : ""}${path}`, {
+    const response = await fetch(sandboxMode ? `/api/judge?path=${encodeURIComponent(path)}` : `/api${demoMode ? "/demo" : ""}${path}`, {
       method: data === undefined ? "GET" : "POST",
       headers: { ...(data === undefined ? {} : { "Content-Type": "application/json" }), ...(!demoMode && companyId ? { "X-Ripple-Company": companyId } : {}) },
       body: data === undefined ? undefined : JSON.stringify(data),

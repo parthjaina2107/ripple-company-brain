@@ -1,6 +1,13 @@
 # Verification record
 
-## Hosted deployment and QA repair — October 17, 2026 (current)
+## Interactive judge sandbox — October 17, 2026 (current)
+
+- The shared tour remains read-only. A new **Try your own sandbox** action creates a separate seeded FalkorDB Cloud graph and signed HTTP-only visitor cookie. Two-hour expiry, a dedicated cleanup namespace and prototype admission limits bound its use. Real company authentication remains local; no hosted Gemini key was added.
+- `npm run check:judge` passed against real Cloud through the actual Vercel HTTP adapter: separate visitors, valid/forged/missing cookies, origin checks, 30-to-14-day refund decision, native graph impact, correction, repeated apply, export and session resume. Visitor B retained 30 days. Only the two temporary graphs created by that verification were removed.
+- 39 automated tests passed, including session forgery, namespace and expiry rejection, and the sandbox endpoint allowlist. The TypeScript/Vite build passed. These checks do not claim a browser video or distributed write concurrency.
+- Follow [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md) to reproduce the full interactive flow. Confirm Vercel access, record the video and complete team rehearsal before submission.
+
+## Hosted deployment and QA repair — October 17, 2026 (earlier verification)
 
 - Deployed [Ripple on Vercel](https://ripple-company-brain.vercel.app) with FalkorDB Cloud as the knowledge store. The hosted Acme workspace is read-only, skips SQLite auth initialization and uses structured question routing without a hosted Gemini key. Local company authentication, website research and writes remain available separately.
 - Live database health returned `ready: true` and `storage: falkordb`; the demo graph contained 124 nodes and 205 relationships at deployment verification.

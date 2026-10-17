@@ -8,7 +8,7 @@ For company login and official website research, start with [Company workspaces]
 
 Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declared submission track: **Track 03 — Company Brain**.
 
-**Hosted showcase:** [Open Ripple](https://ripple-company-brain.vercel.app). Explore the read-only Acme workspace backed by live FalkorDB Cloud. The hosted deployment uses structured question routing; Gemini is available in the configured local workflow. Vercel sign-in protection was enabled at the last deployment check, so verify judge access before sharing the link.
+**Hosted demo:** [Open Ripple](https://ripple-company-brain.vercel.app). Explore the shared Acme tour, then click **Try your own sandbox** to change policies, apply corrections and ask again in an isolated FalkorDB Cloud graph. Follow the [judge walkthrough](docs/JUDGE_SANDBOX.md). The hosted deployment uses structured question routing; Gemini is available in the configured local workflow. Confirm Vercel access before sharing with judges.
 
 Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). The demo video still needs to be recorded and linked before submission.
 
@@ -29,7 +29,7 @@ See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed check
 - Persistent policy lookup in a fresh session, with source references and tool traces.
 - Native Gemini structured extraction and read-only function calling, with optional OpenAI support. Model text proposes and routes; deterministic policy checks and human approval govern writes.
 
-The Acme showcase contains **fictional** data and is read-only. The hosted site disables company authentication and writes. Run locally for company login, website research and the full change/correction workflow. Signed-in company workspaces start empty, with separate policy graphs and real session/membership checks. Creating a workspace does not verify ownership of a company or website.
+The shared Acme tour contains **fictional** data and is read-only. **Judge sandboxes** are writable copies in separate Cloud graphs with signed visitor sessions, two-hour expiry and resource limits. Run locally for real company login and membership management. Signed-in company workspaces start empty, with separate policy graphs and real session/membership checks. Creating a workspace does not verify ownership of a company or website.
 
 ## Run locally
 
@@ -143,7 +143,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-Open http://127.0.0.1:3001. Run one API process for the writable prototype; do not scale writable replicas against company graphs without a shared concurrency strategy. The [Vercel showcase](https://ripple-company-brain.vercel.app) serves the frontend and read-only Express API functions with FalkorDB Cloud as the knowledge database. `RIPPLE_SHARE_DEMO=true` disables account initialization and write routes; `VITE_SHARE_DEMO=true` opens the demo directly. Database credentials stay in server-side Vercel secrets. Hosting writable company accounts requires persistent authentication storage, trusted HTTPS origins, a stable auth secret and email verification/recovery.
+Open http://127.0.0.1:3001. Run one API process for the writable prototype; do not scale writable replicas against company graphs without a shared concurrency strategy. The [Vercel demo](https://ripple-company-brain.vercel.app) serves the frontend and Express API functions with FalkorDB Cloud as the knowledge database. `RIPPLE_SHARE_DEMO=true` disables company-account initialization and authenticated company writes; `VITE_SHARE_DEMO=true` opens the shared tour. `RIPPLE_SANDBOX_SECRET` enables separately authorized judge sandbox writes. Database credentials and session-signing secrets stay in server-side Vercel secrets. Hosting real company accounts requires persistent authentication storage, trusted HTTPS origins, a stable auth secret and email verification/recovery. Sandbox writes are serialized per running instance, not globally across serverless replicas.
 
 ## Deliberate limits
 

@@ -1,8 +1,8 @@
 # Repeatable three-minute walkthrough
 
-This is a rehearsal script, not a recorded video. The [hosted Acme showcase](https://ripple-company-brain.vercel.app) is deployed with live FalkorDB Cloud and structured question routing. Confirm Vercel access before sharing it with judges. For the full recording below, use a signed-in local company workspace backed by live FalkorDB and a configured live model. The hosted demo is read-only; it cannot record decisions, import website research or apply corrections. Video recording is still outstanding.
+This is a rehearsal script, not a recorded video. The [hosted Acme demo](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud and structured question routing. Click **Try your own sandbox** for an isolated, writable graph and follow [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md). Confirm Vercel access before sharing it with judges. To show Gemini as well, use the signed-in local workflow with a configured live model. Video recording is still outstanding.
 
-For a quick hosted tour: open Overview, switch graph policy areas, inspect sources in Knowledge library, ask the trial question for self-serve and enterprise customers, compare historical dates, then inspect Review queue and download an existing applied correction. Ask `How long does a refund take to process?` to demonstrate the unsupported-knowledge boundary. The hosted tour does not replace the writable before/after demonstration below.
+For a quick shared tour: open Overview, switch graph policy areas, inspect sources in Knowledge library, ask the trial question for self-serve and enterprise customers, compare historical dates, then inspect Review queue and download an existing applied correction. Ask `How long does a refund take to process?` to demonstrate the unsupported-knowledge boundary. Open your own sandbox to perform the writable before/after flow without changing this tour.
 
 ## Preparation (outside the three minutes)
 

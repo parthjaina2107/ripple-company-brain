@@ -13,6 +13,7 @@ import { policyTopics } from "../shared/policies.js";
 import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { createAuth, companyProfile } from "./auth.js";
 import { CompanyWorkspaces } from "./company-workspaces.js";
+import { graphFromCookie, sandboxCompany, sandboxCookie, sandboxLifetime, sandboxOperationAllowed, sandboxService, startSandbox } from "./judge-sandbox.js";
 
 const date = z.iso.date();
 const scope = z.enum(["new", "enterprise", "all"]);
@@ -56,6 +57,12 @@ const auth = shareDemo ? undefined : (await createAuth()).auth;
 const companyWorkspaces = new CompanyWorkspaces();
 if (auth) app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json({ limit: "100kb" }));
+app.post("/api/judge/session", async (req, res) => {
+  const { token } = await startSandbox(req.headers.cookie);
+  res.setHeader("Cache-Control", "no-store");
+  res.cookie(sandboxCookie, token, { httpOnly: true, secure: !!process.env.VERCEL, sameSite: "strict", path: "/api/judge", maxAge: sandboxLifetime });
+  res.json({ company: sandboxCompany });
+});
 app.get("/api/session", async (req, res) => {
   if (shareDemo)
     return res.json({ user: null, companies: [], activeCompany: null, shareDemo: true });
@@ -93,7 +100,18 @@ app.get("/api/health", (_req, res) =>
   }),
 );
 app.use("/api", async (req, res, next) => {
-  if (req.path.startsWith("/demo/")) {
+  if (req.path.startsWith("/judge/")) {
+    const path = req.path.replace(/^\/judge/, "");
+    if (!sandboxOperationAllowed(req.method, path)) throw new DomainError("Unsupported sandbox operation.", 403);
+    const graph = graphFromCookie(req.headers.cookie);
+    const judgeService = await sandboxService(graph);
+    if (req.method === "POST" && ["/decisions", "/documents", "/research"].includes(path) && (await judgeService.repo.read()).nodes.length >= 400)
+      throw new DomainError("This sandbox has reached its demo size limit. You can still inspect and correct existing records.", 413);
+    res.setHeader("Cache-Control", "no-store");
+    res.locals.companyService = judgeService;
+    res.locals.company = sandboxCompany;
+    req.url = path;
+  } else if (req.path.startsWith("/demo/")) {
     if (!(req.method === "GET" && (req.path === "/demo/workspace" || /^\/demo\/reviews\/[^/]+\/export$/.test(req.path))) && !(req.method === "POST" && req.path === "/demo/ask"))
       throw new DomainError("The public Acme demo is read-only. Sign in to manage a company workspace.", 403);
     if (!service) throw new DomainError(startupError || "Demo database is not ready.", 503);

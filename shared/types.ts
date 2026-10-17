@@ -15,6 +15,9 @@ export type Relation =
   "DEPENDS_ON" | "ASSERTS" | "OWNED_BY" | "SUPERSEDES" | "CREATES" | "REPAIRS";
 
 export interface Entity {
+  sourceSystem?: string;
+  originalTitle?: string;
+  sampleVersion?: number;
   topic?: PolicyTopic;
   id: string;
   kind: Kind;
@@ -70,6 +73,7 @@ export interface TraceStep {
   count: number;
 }
 export interface Analysis {
+  asOf?: string;
   decision: Entity;
   policy?: Entity;
   impacts: Impact[];

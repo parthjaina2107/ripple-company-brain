@@ -1,5 +1,16 @@
 # Verification record
 
+## Routing repair and distinct sample sources — October 17, 2026
+
+- 31 automated tests pass, including the exact return-title/trial-selector regression and no-mutation validation, mixed-topic path isolation, review retirement, protection of newer reviews during historical lookup, repair of legacy wrongly routed decisions, unique sample titles/content, and compact parameterized graph writes.
+- Production TypeScript/Vite build passes.
+- Live API rejects a refund/return title targeted at trial duration with HTTP 400.
+- Live browser saves the intended 14-day refund change and shows 3 refund conflicts, 2 billing workflow reviews, and 1 preserved enterprise source. No trial-only guidelines appear. Editing the duration clears the report and synchronises the title.
+- Live Gemini extraction and read-only lookups for all four topics pass.
+- Existing Cloud sample sources were upgraded after a local backup; corrected user text and decision/correction history were retained. The wrongly routed historic trial decision is marked invalid with an explanation.
+- Full investigation and repair details: `ROUTING_FIX.md`.
+- Found and fixed query-plan cache memory growth in the original per-node MERGE writer. Evicted only rebuildable cached plans; retained all graph records. Three live saves with the constant query preserved 124 nodes/205 relationships and the refund 3/2/1 result; memory stayed about 4.27 MB instead of exceeding the 100 MB instance limit.
+
 ## Multiple company policy areas — October 16, 2026
 
 - Added refund windows, cancellation notice and initial support response time alongside trial duration. Existing Cloud data was upgraded additively, preserving user decisions and corrections.

@@ -4,6 +4,19 @@ import { FalkorDB } from "falkordb";
 import type { EvidencePath, GraphState, Relation } from "../shared/types.js";
 import { createSeed, expandCompanyKnowledge } from "./seed.js";
 import { handleDatabaseErrors } from "./database-lifecycle.js";
+import { refreshSampleData } from "./sample-data.js";
+import { reconcileReviews } from "./domain.js";
+
+async function upgradeWorkspace(state: GraphState): Promise<boolean> {
+  const before = JSON.stringify(state, null, 2);
+  const expanded = expandCompanyKnowledge(state);
+  const refreshed = refreshSampleData(state);
+  if (!expanded && !refreshed) return false;
+  reconcileReviews(state, "2026-10-17");
+  await mkdir(resolve(".data/backups"), { recursive: true });
+  await writeFile(resolve(".data/backups", `workspace-before-refresh-${Date.now()}.json`), before, "utf8");
+  return true;
+}
 
 export interface Repository {
   mode: "preview" | "falkordb";
@@ -46,7 +59,7 @@ export class PreviewRepository implements Repository {
   async read(): Promise<GraphState> {
     try {
       const state: GraphState = JSON.parse(await readFile(this.file, "utf8"));
-      if (expandCompanyKnowledge(state)) await this.save(state);
+      if (await upgradeWorkspace(state)) await this.save(state);
       return state;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -78,6 +91,28 @@ const allowedRelations: Relation[] = [
   "CREATES",
   "REPAIRS",
 ];
+
+export function buildGraphWrite(state: GraphState) {
+  const ids = new Set(state.nodes.map((node) => node.id));
+  if (ids.size !== state.nodes.length) throw new Error("Duplicate graph node IDs.");
+  const params: Record<string, Array<Record<string, string | boolean>>> = {
+    nodes: state.nodes.map((node) => ({ id: node.id, kind: node.kind, payload: JSON.stringify(node) })),
+  };
+  const clauses = ["UNWIND $nodes AS row", "MERGE (node:Entity {id: row.id}) SET node.payload = row.payload, node.kind = row.kind"];
+  for (const e of state.edges) {
+    if (!allowedRelations.includes(e.type) || !ids.has(e.source) || !ids.has(e.target)) throw new Error("Invalid graph edge.");
+  }
+  for (const type of allowedRelations) {
+    const parameter = `edges_${type}`;
+    params[parameter] = state.edges.filter((e) => e.type === type).map((e) => ({ id: e.id, source: e.source, target: e.target, active: e.active, payload: JSON.stringify(e) }));
+    // Aggregation emits one row even for an empty group, allowing the next group to run.
+    clauses.push("WITH count(*) AS processed", `UNWIND $${parameter} AS row`,
+      "MATCH (source:Entity {id: row.source}), (target:Entity {id: row.target})",
+      `MERGE (source)-[rel:${type} {id: row.id}]->(target) SET rel.payload = row.payload, rel.active = row.active`);
+  }
+  clauses.push("RETURN count(*) AS processed");
+  return { query: clauses.join("\n"), params };
+}
 export class FalkorRepository implements Repository {
   mode = "falkordb" as const;
   private constructor(
@@ -108,9 +143,14 @@ export class FalkorRepository implements Repository {
     const connection = await db.connection;
     connection.on("ready", resetErrorReport);
     const graph = db.selectGraph(name);
-    // A new Cloud instance has no graph key yet; create our workspace marker before RO_QUERY.
-    await graph.query("MERGE (m:RippleMeta {id: 'workspace'}) RETURN m.id");
-    return new FalkorRepository(graph, connection, db);
+    try {
+      // Existing workspaces can connect read-only, including when writes are capacity-limited.
+      if (!(await db.list()).includes(name)) await graph.query("MERGE (m:RippleMeta {id: 'workspace'}) RETURN m.id");
+      return new FalkorRepository(graph, connection, db);
+    } catch (error) {
+      await db.close();
+      throw error;
+    }
   }
   async read(): Promise<GraphState> {
     const [nodes, edges] = await Promise.all([
@@ -129,34 +169,10 @@ export class FalkorRepository implements Repository {
     };
   }
   async save(state: GraphState) {
-    // One write query: nodes/edges are upserted together, never delete-and-reseed.
-    // Model/user text is passed only as parameters. Relationship types are allowlisted.
-    const params: Record<string, string | boolean> = {};
-    const clauses: string[] = [];
-    state.nodes.forEach((node, i) => {
-      params[`id${i}`] = node.id;
-      params[`p${i}`] = JSON.stringify(node);
-      params[`k${i}`] = node.kind;
-      clauses.push(
-        `MERGE (n${i}:Entity {id: $id${i}}) SET n${i}.payload = $p${i}, n${i}.kind = $k${i}`,
-      );
-    });
-    const indices = new Map(state.nodes.map((n, i) => [n.id, i]));
-    state.edges.forEach((e, i) => {
-      if (
-        !allowedRelations.includes(e.type) ||
-        !indices.has(e.source) ||
-        !indices.has(e.target)
-      )
-        throw new Error("Invalid graph edge.");
-      params[`eid${i}`] = e.id;
-      params[`ep${i}`] = JSON.stringify(e);
-      params[`active${i}`] = e.active;
-      clauses.push(
-        `MERGE (n${indices.get(e.source)})-[r${i}:${e.type} {id: $eid${i}}]->(n${indices.get(e.target)}) SET r${i}.payload = $ep${i}, r${i}.active = $active${i}`,
-      );
-    });
-    await this.graph.query(clauses.join("\n"), { params });
+    // A constant query shape prevents large per-workspace cached plans from filling Cloud memory.
+    // One atomic query still upserts all records and preserves inactive relationships/history.
+    const write = buildGraphWrite(state);
+    await this.graph.query(write.query, { params: write.params });
   }
   async paths(target: string): Promise<EvidencePath[]> {
     const result = await this.graph.roQuery<{
@@ -181,8 +197,13 @@ export async function createRepository(): Promise<Repository> {
     process.env.FALKORDB_URL,
     process.env.FALKORDB_GRAPH || "ripple_hackathon",
   );
-  const state = await repo.read();
-  if (!state.nodes.length) await repo.save(createSeed());
-  else if (expandCompanyKnowledge(state)) await repo.save(state);
-  return repo;
+  try {
+    const state = await repo.read();
+    if (!state.nodes.length) await repo.save(createSeed());
+    else if (await upgradeWorkspace(state)) await repo.save(state);
+    return repo;
+  } catch (error) {
+    await repo.close();
+    throw error;
+  }
 }

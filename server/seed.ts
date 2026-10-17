@@ -6,6 +6,7 @@ import type {
   Scope,
 } from "../shared/types.js";
 import { policies, policyStatement, type PolicyTopic } from "../shared/policies.js";
+import { refreshSampleData } from "./sample-data.js";
 
 export function edge(source: string, target: string, type: Relation): Edge {
   return {
@@ -226,6 +227,7 @@ export function createSeed(): GraphState {
   );
   const state = { nodes, edges };
   expandCompanyKnowledge(state);
+  refreshSampleData(state, true);
   return state;
 }
 

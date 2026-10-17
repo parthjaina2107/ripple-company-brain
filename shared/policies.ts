@@ -4,8 +4,8 @@ export const policyTopics = ["trial_duration", "refund_window", "cancellation_no
 export type PolicyTopic = (typeof policyTopics)[number];
 
 export const policies = {
-  trial_duration: { label: "Trial duration", unit: "days", root: "topic-trial", initial: 14, suggested: 7, question: "How long is the self-serve trial?", keywords: /\btrial\b/i },
-  refund_window: { label: "Refund window", unit: "days", root: "topic-refund", initial: 30, suggested: 14, question: "What is our refund window?", keywords: /\brefunds?\b/i },
+  trial_duration: { label: "Trial duration", unit: "days", root: "topic-trial", initial: 14, suggested: 7, question: "How long is the self-serve trial?", keywords: /\btrial\b|\bfree trail\b/i },
+  refund_window: { label: "Refund / return window", unit: "days", root: "topic-refund", initial: 30, suggested: 14, question: "What is our refund window?", keywords: /\brefunds?\b|\breturns?\s+(?:policy|window|period)\b/i },
   cancellation_notice: { label: "Cancellation notice", unit: "days", root: "topic-cancellation", initial: 30, suggested: 15, question: "How much cancellation notice is required?", keywords: /\bcancel(?:lation|ling|ing|ed)?\b/i },
   support_response: { label: "Support response time", unit: "hours", root: "topic-support", initial: 24, suggested: 12, question: "How quickly does support respond?", keywords: /\bsupport\b|\bresponse\b/i },
 } as const;
@@ -28,6 +28,30 @@ export function policyStatement(topic: PolicyTopic, value: number, scope: Scope)
 }
 export function matchingTopics(text: string): PolicyTopic[] {
   return policyTopics.filter((topic) => policies[topic].keywords.test(text));
+}
+
+export function decisionIntent(title: string) {
+  const topics = matchingTopics(title);
+  const quantities = [...title.matchAll(/\b(\d{1,3})[- ](days?|hours?)\b/gi)];
+  const quantity = quantities.length === 1 ? quantities[0] : undefined;
+  return { topics, value: quantity ? Number(quantity[1]) : undefined,
+    unit: quantity ? (quantity[2].toLowerCase().startsWith("hour") ? "hours" : "days") : undefined };
+}
+
+export function decisionIssue(input: { topic?: PolicyTopic; title: string; value: number }): string | undefined {
+  const intent = decisionIntent(input.title);
+  const topic = topicOf(input);
+  if (intent.topics.length > 1) return "Choose one policy area per decision. Split this title into separate changes.";
+  if (intent.topics.length === 1 && intent.topics[0] !== topic)
+    return `The title describes ${policies[intent.topics[0]].label.toLowerCase()}, but the selected area is ${policies[topic].label.toLowerCase()}. Select the matching policy area before saving.`;
+  if (intent.unit && intent.unit !== policies[topic].unit)
+    return `${policies[topic].label} uses ${policies[topic].unit}. Make the title and value use the same unit.`;
+  if (intent.value !== undefined && intent.value !== input.value)
+    return `The title says ${intent.value} ${intent.unit}, but the value is ${input.value} ${policies[topic].unit}. Make them match before saving.`;
+}
+
+export function withDecisionValue(title: string, value: string): string {
+  return /^\d+$/.test(value) ? title.replace(/\b\d{1,3}(?=[- ](?:days?|hours?)\b)/gi, value) : title;
 }
 export function validClaimQuote(claim: { topic?: PolicyTopic; value: number; quote: string; scope: Scope }, content: string): boolean {
   const topic = topicOf(claim);

@@ -9,7 +9,7 @@ import type {
   Scope,
 } from "../shared/types.js";
 import { edge } from "./seed.js";
-import { policies, policyStatement, topicOf, type PolicyTopic } from "../shared/policies.js";
+import { policies, policyStatement, topicOf, decisionIssue, type PolicyTopic } from "../shared/policies.js";
 
 export function applicablePolicy(
   state: GraphState,
@@ -37,6 +37,8 @@ export function applicablePolicy(
 }
 
 export function addDecision(state: GraphState, input: DecisionInput): Entity {
+  const issue = decisionIssue(input);
+  if (issue) throw new DomainError(issue, 400);
   const now = new Date().toISOString();
   const id = randomUUID();
   const topic = topicOf(input);
@@ -102,6 +104,11 @@ export function analyze(
   const byId = new Map(state.nodes.map((n) => [n.id, n]));
   const byArtifact = new Map<string, EvidencePath>();
   for (const path of paths) {
+    if (path.ids.at(-1) !== policies[topic].root) continue;
+    if (path.ids.some((id) => {
+      const node = byId.get(id);
+      return node && ["claim", "policy"].includes(node.kind) && topicOf(node) !== topic;
+    })) continue;
     const item = byId.get(path.ids[0]);
     if (!item || !["document", "workflow", "memory"].includes(item.kind))
       continue;
@@ -138,7 +145,7 @@ export function analyze(
       .filter((n) => n?.status === "current" && topicOf(n) === topic);
     let classification: Impact["classification"] = "review";
     let reason =
-      "This workflow depends on changed knowledge. Its behavior needs an owner review; a dependency alone does not prove a contradiction.";
+      `This ${artifact.kind === "workflow" ? "workflow" : "source"} depends on ${policies[topic].label.toLowerCase()} knowledge. An owner must check its behavior; a dependency alone does not prove a contradiction.`;
     if (!active) {
       classification = "unaffected";
       reason = notice!;
@@ -195,6 +202,7 @@ export function analyze(
     });
   }
   return {
+    asOf,
     decision,
     policy,
     impacts: impacts.sort(
@@ -225,6 +233,7 @@ export function analyze(
 }
 
 export function createReviews(state: GraphState, analysis: Analysis) {
+  reconcileReviews(state, analysis.asOf || analysis.policy?.effectiveFrom || "2026-10-17");
   for (const impact of analysis.impacts) {
     if (impact.classification === "unaffected") continue;
     const id = `review:${analysis.decision.id}:${impact.artifact.id}`;
@@ -267,6 +276,26 @@ export function createReviews(state: GraphState, analysis: Analysis) {
     }
     impact.reviewId = id;
   }
+}
+
+export function reconcileReviews(state: GraphState, asOf: string): boolean {
+  let changed = false;
+  for (const review of state.nodes.filter((n) => n.kind === "review" && n.status === "pending")) {
+    const policy = state.nodes.find((n) => n.id === review.policyId);
+    const artifact = state.nodes.find((n) => n.id === review.artifactId);
+    const current = policy && applicablePolicy(state, policy.scope!, asOf, topicOf(policy));
+    const audiencePolicy = policy && artifact?.scope && artifact.scope !== "all"
+      ? applicablePolicy(state, artifact.scope, asOf, topicOf(policy)) : current;
+    const newerThan = (candidate: Entity | undefined) => candidate && policy && candidate.id !== policy.id &&
+      (candidate.effectiveFrom! > policy.effectiveFrom! || (candidate.effectiveFrom === policy.effectiveFrom &&
+        ((candidate.createdAt || "") > (policy.createdAt || "") || (candidate.createdAt === policy.createdAt && (candidate.revision || 0) > (policy.revision || 0)))));
+    if (!policy || !artifact || policy.status !== "approved" || newerThan(current) || newerThan(audiencePolicy) || artifact.revision !== review.sourceRevision || artifact.content !== review.original) {
+      review.status = "stale";
+      review.reason = "This review belongs to an older policy or source revision. Open the latest decision and refresh its impact report.";
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 export class DomainError extends Error {

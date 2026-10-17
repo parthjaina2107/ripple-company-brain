@@ -48,15 +48,21 @@ app.use((req, res, next) => {
 
 let service: RippleService | undefined;
 let startupError: string | undefined;
-try {
-  const repo = await createRepository();
-  await repo.read();
-  service = new RippleService(repo);
-} catch {
-  startupError =
-    "FalkorDB connection failed. Check FALKORDB_URL, TLS, port and instance availability, then restart. No preview fallback was used.";
-  console.error(startupError);
+async function connectWorkspace() {
+  try {
+    const repo = await createRepository();
+    await repo.read();
+    service = new RippleService(repo);
+    startupError = undefined;
+  } catch (error) {
+    startupError = /\bOOM\b|maxmemory/i.test(error instanceof Error ? error.message : "")
+      ? "FalkorDB has reached its memory capacity. Saved graph data is retained; new writes need available database memory."
+      : "FalkorDB connection is unavailable. Check the database configuration or retry shortly; the server will reconnect automatically.";
+    console.error(startupError);
+    setTimeout(() => void connectWorkspace(), 10000).unref();
+  }
 }
+await connectWorkspace();
 
 app.get("/api/health", (_req, res) =>
   res.status(service && (service.repo.isReady?.() ?? true) ? 200 : 503).json({

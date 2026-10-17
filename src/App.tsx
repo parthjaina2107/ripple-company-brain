@@ -38,7 +38,7 @@ import type {
 } from "../shared/types";
 import { api } from "./api";
 import KnowledgeMap from "./KnowledgeMap";
-import { policies, policyTopics, topicOf, type PolicyTopic } from "../shared/policies";
+import { policies, policyTopics, topicOf, decisionIntent, decisionIssue, withDecisionValue, policyStatement, type PolicyTopic } from "../shared/policies";
 
 type Page =
   | "Overview"
@@ -103,9 +103,11 @@ export default function App() {
   const [toast, setToast] = useState("");
   const [busy, setBusy] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis>();
-  const [asOf, setAsOf] = useState("2026-10-16");
+  const [asOf, setAsOf] = useState("2026-10-17");
   const [selected, setSelected] = useState<string>();
   const [selectedReview, setSelectedReview] = useState<string>();
+  const [reviewTopic, setReviewTopic] = useState<PolicyTopic | "all">("all");
+  const [reviewStatus, setReviewStatus] = useState("pending");
   const [showUpload, setShowUpload] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -115,7 +117,7 @@ export default function App() {
   const [days, setDays] = useState("7");
   const [topic, setTopic] = useState<PolicyTopic>("trial_duration");
   const [scope, setScope] = useState<Scope>("new");
-  const [effectiveFrom, setEffectiveFrom] = useState("2026-10-16");
+  const [effectiveFrom, setEffectiveFrom] = useState("2026-10-17");
   const [approval, setApproval] = useState<"approved" | "proposed">("approved");
   const [question, setQuestion] = useState(
     "How long is the free trial for new customers?",
@@ -221,8 +223,9 @@ export default function App() {
       .filter((n) => n.kind === "correction")
       .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || "")) ||
     [];
-  const review =
-    reviews.find((r) => r.id === selectedReview) || pending[0] || reviews[0];
+  const visibleReviews = reviews.filter((r) => (reviewTopic === "all" || topicOf(r) === reviewTopic) && (reviewStatus === "all" || r.status === reviewStatus))
+    .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  const review = visibleReviews.find((r) => r.id === selectedReview) || visibleReviews[0];
   const selectedNode = graph?.nodes.find((n) => n.id === selected);
   const counts = {
     conflict:
@@ -235,16 +238,33 @@ export default function App() {
       analysis?.impacts.filter((i) => i.classification === "unaffected")
         .length || 0,
   };
-  const reviewedCount = reviews.filter((r) => r.status !== "pending").length;
+  const reviewedCount = reviews.filter((r) => ["applied", "reviewed"].includes(r.status || "")).length;
+  const draftIssue = days ? decisionIssue({ topic, title: decisionTitle, value: Number(days) }) : undefined;
+
+  function clearReport() {
+    setAnalysis(undefined);
+    setFilter("all");
+  }
+  function editTitle(title: string) {
+    setDecisionTitle(title);
+    const intent = decisionIntent(title);
+    if (intent.topics.length === 1) {
+      const detected = intent.topics[0];
+      setTopic(detected);
+      if (intent.value !== undefined && intent.unit === policies[detected].unit) setDays(String(intent.value));
+    }
+    clearReport();
+  }
 
   function changeTopic(next: PolicyTopic) {
     setTopic(next);
     setDays(String(policies[next].suggested));
     setDecisionTitle(`Update ${policies[next].label.toLowerCase()} to ${policies[next].suggested} ${policies[next].unit}`);
-    setAnalysis(undefined);
+    clearReport();
   }
 
   async function analyzeChange() {
+    if (draftIssue) { setError(draftIssue); return; }
     await run(async () => {
       const result = await api<Analysis>("/decisions", {
         topic,
@@ -256,6 +276,7 @@ export default function App() {
         asOf,
       });
       setAnalysis(result);
+      setFilter("all");
       await refresh();
       setToast("Decision recorded. Impact analysis is ready.");
     });
@@ -309,7 +330,10 @@ export default function App() {
             <button
               key={label}
               className={`nav-item ${page === label ? "active" : ""}`}
-              onClick={() => go(label)}
+              onClick={() => {
+                if (label === "Review queue") { setReviewTopic("all"); setReviewStatus("pending"); }
+                go(label);
+              }}
             >
               <Icon size={18} />
               {label}
@@ -535,12 +559,13 @@ export default function App() {
                       </div>
                       <label className="map-topic-selector">
                         Graph policy area
-                        <select value={topic} onChange={(e) => changeTopic(e.target.value as PolicyTopic)}>
+                        <select value={topic} disabled={busy} onChange={(e) => changeTopic(e.target.value as PolicyTopic)}>
                           {policyTopics.map((key) => <option key={key} value={key}>{policies[key].label}</option>)}
                         </select>
                       </label>
                       <KnowledgeMap
                         topic={topic}
+                        asOf={asOf}
                         graph={graph!}
                         impacts={analysis?.impacts}
                         onSelect={setSelected}
@@ -705,7 +730,7 @@ export default function App() {
                     >
                       <label>
                         Policy area
-                        <select value={topic} onChange={(e) => changeTopic(e.target.value as PolicyTopic)}>
+                        <select value={topic} disabled={busy} onChange={(e) => changeTopic(e.target.value as PolicyTopic)}>
                           {policyTopics.map((key) => <option key={key} value={key}>{policies[key].label}</option>)}
                         </select>
                       </label>
@@ -716,9 +741,12 @@ export default function App() {
                           minLength={3}
                           maxLength={160}
                           value={decisionTitle}
-                          onChange={(e) => setDecisionTitle(e.target.value)}
+                          disabled={busy}
+                          onChange={(e) => editTitle(e.target.value)}
+                          aria-describedby="decision-routing-hint"
                         />
                       </label>
+                      <p id="decision-routing-hint" className="muted form-help">Mentioning a supported policy and duration in the title fills the matching fields. Review them before saving. “Return policy” means the refund eligibility window.</p>
                       <div className="form-two">
                         <label>
                           {policies[topic].label}
@@ -730,7 +758,12 @@ export default function App() {
                               max={365}
                               step={1}
                               value={days}
-                              onChange={(e) => setDays(e.target.value)}
+                              disabled={busy}
+                              onChange={(e) => {
+                                setDays(e.target.value);
+                                setDecisionTitle((title) => withDecisionValue(title, e.target.value));
+                                clearReport();
+                              }}
                             />
                             <span>{policies[topic].unit}</span>
                           </span>
@@ -739,8 +772,9 @@ export default function App() {
                           Decision status
                           <select
                             value={approval}
+                            disabled={busy}
                             onChange={(e) =>
-                              setApproval(e.target.value as typeof approval)
+                              { setApproval(e.target.value as typeof approval); clearReport(); }
                             }
                           >
                             <option value="approved">Approved</option>
@@ -752,7 +786,8 @@ export default function App() {
                         Applies to
                         <select
                           value={scope}
-                          onChange={(e) => setScope(e.target.value as Scope)}
+                          disabled={busy}
+                          onChange={(e) => { setScope(e.target.value as Scope); clearReport(); }}
                         >
                           <option value="new">New self-serve customers</option>
                           <option value="enterprise">
@@ -768,7 +803,8 @@ export default function App() {
                             type="date"
                             required
                             value={effectiveFrom}
-                            onChange={(e) => setEffectiveFrom(e.target.value)}
+                            disabled={busy}
+                            onChange={(e) => { setEffectiveFrom(e.target.value); clearReport(); }}
                           />
                         </label>
                         <label>
@@ -777,10 +813,13 @@ export default function App() {
                             type="date"
                             required
                             value={asOf}
-                            onChange={(e) => setAsOf(e.target.value)}
+                            disabled={busy}
+                            onChange={(e) => { setAsOf(e.target.value); clearReport(); }}
                           />
                         </label>
                       </div>
+                      {draftIssue ? <p className="notice" role="alert">{draftIssue}</p> : null}
+                      {days && !draftIssue ? <div className="decision-preview" role="status"><strong>Ready to record · {policies[topic].label}</strong><p>{policyStatement(topic, Number(days), scope)}</p></div> : null}
                       <div className="form-note">
                         <ShieldCheck size={17} />
                         <span>
@@ -790,7 +829,7 @@ export default function App() {
                       </div>
                       <button
                         className="primary full"
-                        disabled={busy}
+                        disabled={busy || !!draftIssue}
                         type="submit"
                       >
                         {busy ? (
@@ -810,8 +849,9 @@ export default function App() {
                           <Badge value={analysis.decision.status} />
                         </div>
                         <h2 className="analysis-title">
-                          Here’s how the change travels.
+                          {policies[topicOf(analysis.decision)].label} impact
                         </h2>
+                        <p className="report-context">{analysis.decision.title} · {analysis.decision.value} {policies[topicOf(analysis.decision)].unit} · {scopeLabel(analysis.decision.scope)} · as of {analysis.asOf || asOf}</p>
                         {analysis.notice ? (
                           <div className="notice">{analysis.notice}</div>
                         ) : null}
@@ -844,6 +884,8 @@ export default function App() {
                                 onOpen={() => setSelected(impact.artifact.id)}
                                 onReview={() => {
                                   setSelectedReview(impact.reviewId);
+                                  setReviewTopic(topicOf(analysis.decision));
+                                  setReviewStatus("all");
                                   go("Review queue");
                                 }}
                               />
@@ -852,7 +894,7 @@ export default function App() {
                         <Trace steps={analysis.trace} />
                         <button
                           className="text-link"
-                          disabled={busy}
+                              disabled={busy}
                           onClick={() =>
                             run(async () => {
                               setAnalysis(
@@ -900,7 +942,7 @@ export default function App() {
                         <div className="example-note">
                           <strong>Try the prefilled example</strong>
                           <p>
-                            {topic === "trial_duration" ? "Five trial claims and three workflows in the original example." : "Two self-serve claims and one connected workflow in each new policy area."} Enterprise exceptions stay separate.
+                            Each policy has its own documents, saved replies, and operational dependencies. Results are discovered from its graph neighborhood; counts depend on your saved changes.
                           </p>
                         </div>
                       </section>
@@ -965,7 +1007,7 @@ export default function App() {
                             <span>
                               <strong>{n.title}</strong>
                               <small>
-                                {n.kind === "memory" ? "Agent memory" : n.kind}
+                                {n.kind === "memory" ? "Saved agent reply" : n.kind === "workflow" ? "Operational workflow" : "Source document"}{n.sourceSystem ? ` · ${n.sourceSystem}` : ""}
                               </small>
                             </span>
                           </span>
@@ -992,14 +1034,14 @@ export default function App() {
                     <section className="card review-list">
                       <div className="card-heading">
                         <h2>Review items</h2>
-                        <span className="number-bubble">{pending.length}</span>
+                        <span className="number-bubble">{visibleReviews.length}</span>
                       </div>
-                      {[...reviews]
-                        .sort(
-                          (a, b) =>
-                            Number(b.status === "pending") -
-                            Number(a.status === "pending"),
-                        )
+                      <div className="review-filters">
+                        <label>Review policy area<select value={reviewTopic} onChange={(e) => { setReviewTopic(e.target.value as PolicyTopic | "all"); setSelectedReview(undefined); setReviewNote(""); }}><option value="all">All policy areas</option>{policyTopics.map((key) => <option key={key} value={key}>{policies[key].label}</option>)}</select></label>
+                        <label>Review status<select value={reviewStatus} onChange={(e) => { setReviewStatus(e.target.value); setSelectedReview(undefined); setReviewNote(""); }}><option value="pending">Pending</option><option value="applied">Applied</option><option value="reviewed">Owner reviewed</option><option value="stale">Superseded / stale</option><option value="all">All history</option></select></label>
+                      </div>
+                      {!visibleReviews.length ? <p className="review-empty">No reviews match these filters. Choose another policy area or open All history.</p> : null}
+                      {visibleReviews
                         .map((item) => (
                           <button
                             className={`review-item ${review?.id === item.id ? "selected" : ""}`}
@@ -1020,7 +1062,8 @@ export default function App() {
                               />
                             </span>
                             <strong>{item.title}</strong>
-                            <small>{dateLabel(item.createdAt)}</small>
+                            <small>{policies[topicOf(item)].label} · {dateLabel(item.createdAt)}</small>
+                            <small>{graph!.nodes.find((n) => n.id === item.decisionId)?.title}</small>
                           </button>
                         ))}
                     </section>
@@ -1040,6 +1083,7 @@ export default function App() {
                           />
                         </div>
                         <div className="correction-body">
+                          <p className="report-context">{policies[topicOf(review)].label} · {graph!.nodes.find((n) => n.id === review.decisionId)?.title}</p>
                           <p className="reason-box">{review.reason}</p>
                           <h3 className="small-heading">EVIDENCE PATH</h3>
                           <Evidence
@@ -1180,12 +1224,20 @@ export default function App() {
                                 Effective {dateLabel(d.effectiveFrom)}
                               </p>
                               <small>Recorded {dateLabel(d.createdAt)}</small>
+                              {d.originalTitle ? <p className="muted">Original title: {d.originalTitle}</p> : null}
+                              {d.status === "invalid" ? <p className="notice">{d.reason}</p> : null}
                               <button
                                 className="text-link"
-                                disabled={busy}
+                                disabled={busy || d.status === "invalid"}
                                 onClick={() =>
                                   run(async () => {
                                     setTopic(topicOf(d));
+                                    setDecisionTitle(d.title);
+                                    setDays(String(d.value));
+                                    setScope(d.scope!);
+                                    setEffectiveFrom(d.effectiveFrom!);
+                                    setApproval(d.status === "proposed" ? "proposed" : "approved");
+                                    setFilter("all");
                                     setAnalysis(
                                       await api(`/decisions/${d.id}/analyze`, {
                                         asOf,
@@ -1290,6 +1342,7 @@ export default function App() {
                             setQuestion(
                               "How long is the free trial for new customers?",
                             );
+                            setAnswer(undefined);
                             setAskScope("new");
                           }}
                         >
@@ -1303,7 +1356,7 @@ export default function App() {
                         ))}
                         <button
                           onClick={() =>
-                            setQuestion("What is our pricing policy?")
+                            { setQuestion("What is our pricing policy?"); setAnswer(undefined); }
                           }
                         >
                           What is our pricing policy? <ArrowUpRight size={14} />
@@ -1328,8 +1381,9 @@ export default function App() {
                             Customer group
                             <select
                               value={askScope}
+                              disabled={busy}
                               onChange={(e) =>
-                                setAskScope(e.target.value as Scope)
+                                { setAskScope(e.target.value as Scope); setAnswer(undefined); }
                               }
                             >
                               <option value="new">New self-serve</option>
@@ -1342,7 +1396,8 @@ export default function App() {
                               type="date"
                               required
                               value={asOf}
-                              onChange={(e) => setAsOf(e.target.value)}
+                              disabled={busy}
+                              onChange={(e) => { setAsOf(e.target.value); setAnswer(undefined); clearReport(); }}
                             />
                           </label>
                         </div>
@@ -1353,7 +1408,8 @@ export default function App() {
                             minLength={3}
                             maxLength={2000}
                             value={question}
-                            onChange={(e) => setQuestion(e.target.value)}
+                            disabled={busy}
+                            onChange={(e) => { setQuestion(e.target.value); setAnswer(undefined); }}
                           />
                           <button
                             className="primary"
@@ -1473,6 +1529,7 @@ export default function App() {
             </span>
             <h2 id="detail-title">{selectedNode.title}</h2>
             <div className="detail-meta">
+              {selectedNode.sourceSystem ? <span>{selectedNode.sourceSystem}</span> : null}
               <Badge value={selectedNode.status} />
               {selectedNode.scope ? (
                 <span>{scopeLabel(selectedNode.scope)}</span>

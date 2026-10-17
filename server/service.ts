@@ -12,6 +12,7 @@ import {
   applyCorrection,
   createReviews,
   DomainError,
+  reconcileReviews,
 } from "./domain.js";
 import { answerQuestion } from "./ai.js";
 import { edge } from "./seed.js";
@@ -83,6 +84,7 @@ export class RippleService {
     return this.serial(async () => {
       const state = await this.repo.read();
       const review = applyCorrection(state, reviewId, asOf);
+      reconcileReviews(state, asOf);
       await this.repo.save(state);
       return review;
     });

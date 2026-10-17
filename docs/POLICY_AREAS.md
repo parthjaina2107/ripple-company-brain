@@ -15,7 +15,7 @@ All values below are fictional Acme sample policies effective October 1, 2026. T
 2. Open **Overview** and select **Refund window** under **Graph policy area**. Inspect its separate dependency neighborhood.
 3. Open **Ask Ripple**, choose **New self-serve**, and ask “What is our refund window?” using October 16, 2026. An unchanged baseline returns 30 days with its policy reference. Select Enterprise for its 60-day exception.
 4. Open **Change studio**, choose **Refund window** under **Policy area**, and enter 14 days. Keep the title consistent. Choose Approved, New self-serve customers, and an effective date no later than the analysis date.
-5. Record and analyze. On fresh sample data, expect two conflicting claims (guide and saved answer), one workflow review, and an unaffected enterprise guide. Existing user edits can change these counts.
+5. Record and analyze. On fresh sample data, expect three conflicting claims (billing article, saved billing reply, and invoice footer), two workflow reviews (intake and Finance handoff), and an unaffected enterprise commercial schedule. Existing user edits can change these counts.
 6. Inspect the full evidence path, review one proposed correction, and apply it. The original claim stays in history. The workflow requires a human review; Ripple does not execute it.
 7. Ask the refund question again. The approved policy now returns 14 days. Trial duration and other policy areas retain their own values.
 
@@ -32,6 +32,12 @@ Extract policy claims, inspect each topic, number, unit, audience, and source qu
 ## Data upgrade
 
 Startup adds missing sample policy areas once. It keeps all existing trial decisions, corrections, documents and review history. It does not reset or overwrite the workspace. Legacy records without a topic retain their trial-duration meaning.
+
+The October 17 sample refresh gives each document, saved reply and workflow a distinct purpose, source system and owner. It adds invoice messaging, Finance approval routing, renewal-calendar automation and a help-widget acknowledgement. Only untouched seeded text is refreshed; corrected source text remains intact. A local `.data/backups/` snapshot is written before an existing workspace is upgraded.
+
+Decision titles now recognise “return policy” as the refund window, fill recognised topic/duration fields, and block conflicting values or units. Editing the draft clears the previous report. A report identifies its saved topic, value, audience and analysis date. Reviews can be filtered by policy area and status; superseded tasks remain in history instead of staying actionable.
+
+An older bug allowed a refund/return title to save a trial policy. Affected records are retained with status `invalid` and an explanation; they no longer determine trial answers. Record the intended refund decision anew. Titles with an incorrect numeric label are corrected to match their stored value while retaining `originalTitle`.
 
 ## Boundaries
 

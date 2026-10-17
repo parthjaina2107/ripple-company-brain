@@ -15,8 +15,8 @@ test("each added topic isolates impact, preserves enterprise exceptions and supp
     const config = policies[topic];
     const decision = addDecision(state, { ...base, topic, value: config.suggested });
     const result = analyze(state, decision, traverse(state, config.root), base.asOf);
-    assert.equal(result.impacts.filter((i) => i.classification === "conflict").length, 2);
-    assert.equal(result.impacts.filter((i) => i.classification === "review").length, 1);
+    assert.equal(result.impacts.filter((i) => i.classification === "conflict").length, topic === "cancellation_notice" ? 2 : 3);
+    assert.equal(result.impacts.filter((i) => i.classification === "review").length, topic === "support_response" ? 1 : 2);
     assert.ok(result.impacts.every((i) => topicOf(i.artifact) === topic));
     assert.equal(applicablePolicy(state, "new", "2026-10-15", topic)?.value, config.initial);
     assert.equal(applicablePolicy(state, "new", base.asOf, topic)?.value, config.suggested);

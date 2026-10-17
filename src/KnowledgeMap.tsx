@@ -16,12 +16,12 @@ const labels: Record<string, string> = {
   "topic-trial": "Trial duration",
   "policy-trial": "Self-serve policy",
   "policy-enterprise": "Enterprise policy",
-  "doc-onboarding": "Getting started",
-  "doc-support": "Support playbook",
-  "doc-faq": "Sales FAQ",
-  "doc-enterprise": "Enterprise guide",
-  "flow-reminder": "Reminder sequence",
-  "memory-answer": "Saved agent answer",
+  "doc-onboarding": "Launch checklist",
+  "doc-support": "Evaluation answers",
+  "doc-faq": "Pricing-page FAQ",
+  "doc-enterprise": "Pilot agreement",
+  "flow-reminder": "Lifecycle reminders",
+  "memory-answer": "Onboarding assistant",
 };
 
 export default function KnowledgeMap({
@@ -29,11 +29,13 @@ export default function KnowledgeMap({
   impacts = [],
   onSelect,
   topic = "trial_duration",
+  asOf = "2026-10-17",
 }: {
   graph: GraphState;
   impacts?: Impact[];
   onSelect: (id: string) => void;
   topic?: PolicyTopic;
+  asOf?: string;
 }) {
   const basePositions = topic === "trial_duration" ? positions : [
     { id: policies[topic].root, x: 430, y: 52 },
@@ -49,15 +51,15 @@ export default function KnowledgeMap({
     [policies[topic].root]: policies[topic].label,
     [basePolicyId]: "Self-serve policy",
     [`policy-${topic}-enterprise`]: "Enterprise policy",
-    [`doc-${topic}-new`]: "Self-serve guide",
-    [`doc-${topic}-enterprise`]: "Enterprise guide",
-    [`memory-${topic}`]: "Saved agent answer",
-    [`flow-${topic}`]: "Handling workflow",
+    [`doc-${topic}-new`]: topic === "refund_window" ? "Purchase eligibility" : topic === "cancellation_notice" ? "Renewal settings" : "Service handbook",
+    [`doc-${topic}-enterprise`]: topic === "refund_window" ? "Commercial terms" : topic === "cancellation_notice" ? "Procurement addendum" : "Priority care schedule",
+    [`memory-${topic}`]: topic === "refund_window" ? "Billing assistant" : topic === "cancellation_notice" ? "Renewal assistant" : "Support concierge",
+    [`flow-${topic}`]: topic === "refund_window" ? "Refund intake" : topic === "cancellation_notice" ? "Non-renewal checklist" : "Queue escalation",
   };
   const latest = graph.nodes
     .filter(
       (n) =>
-        n.kind === "policy" && n.status === "approved" && n.scope === "new" && topicOf(n) === topic,
+        n.kind === "policy" && n.status === "approved" && n.effectiveFrom! <= asOf && (n.scope === "new" || n.scope === "all") && topicOf(n) === topic,
     )
     .sort(
       (a, b) =>

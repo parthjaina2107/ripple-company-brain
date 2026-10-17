@@ -580,6 +580,14 @@ h1 {
 .graph-card {
   min-width: 0;
 }
+.form-help { font-size: 12px; line-height: 1.6; margin: -4px 0 18px; }
+.decision-preview { border: 1px solid #dce5d1; border-radius: 10px; background: #f5f8ef; padding: 14px; margin-bottom: 18px; font-size: 13px; line-height: 1.6; }
+.decision-preview p { margin: 7px 0 0; }
+.report-context { font-size: 13px; line-height: 1.7; color: #62705f; margin-bottom: 20px; }
+.review-filters { display: grid; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e5e9de; }
+.review-filters label { display: grid; gap: 6px; font-size: 12px; }
+.review-empty { padding: 16px 20px; font-size: 13px; line-height: 1.6; }
+.source-content { white-space: pre-line; }
 .map-topic-selector {
   display: grid;
   gap: 7px;

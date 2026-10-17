@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { resolve } from "node:path";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { createRepository } from "./repository.js";
 import { RippleService } from "./service.js";
@@ -29,6 +30,9 @@ const documentSchema = z.object({
   content: z.string().trim().min(10).max(20000),
 });
 const app = express();
+// The hosted showcase exposes only the seeded Acme graph. It avoids creating a
+// local SQLite auth database on serverless storage and protects shared demo data.
+const shareDemo = process.env.RIPPLE_SHARE_DEMO === "true";
 app.disable("x-powered-by");
 // The API and session cookies share the frontend origin through the Vite proxy.
 app.use((req, res, next) => {
@@ -47,15 +51,17 @@ app.use((req, res, next) => {
     return res.status(403).json({ error: "Origin not allowed." });
   next();
 });
-const { auth } = await createAuth();
+const auth = shareDemo ? undefined : (await createAuth()).auth;
 const companyWorkspaces = new CompanyWorkspaces();
-app.all("/api/auth/*splat", toNodeHandler(auth));
+if (auth) app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use(express.json({ limit: "100kb" }));
 app.get("/api/session", async (req, res) => {
+  if (shareDemo)
+    return res.json({ user: null, companies: [], activeCompany: null, shareDemo: true });
   const headers = fromNodeHeaders(req.headers);
-  const session = await auth.api.getSession({ headers });
+  const session = await auth!.api.getSession({ headers });
   if (!session) return res.json({ user: null, companies: [], activeCompany: null });
-  const companies = (await auth.api.listOrganizations({ headers })).map(companyProfile);
+  const companies = (await auth!.api.listOrganizations({ headers })).map(companyProfile);
   res.json({ user: { id: session.user.id, email: session.user.email }, companies,
     activeCompany: companies.find((company) => company.id === session.session.activeOrganizationId) || null });
 });
@@ -94,17 +100,19 @@ app.use("/api", async (req, res, next) => {
     res.locals.company = { id: "demo", name: "Acme", website: "", demo: true };
     req.url = req.url.replace(/^\/demo/, "");
   } else {
+    if (shareDemo)
+      throw new DomainError("This hosted showcase is read-only. Open the Acme demo to explore the graph.", 403);
     const headers = fromNodeHeaders(req.headers);
-    const session = await auth.api.getSession({ headers });
+    const session = await auth!.api.getSession({ headers });
     if (!session) throw new DomainError("Sign in to access company policies.", 401);
     if (!session.session.activeOrganizationId) throw new DomainError("Create or select a company workspace first.", 409);
     if (req.get("X-Ripple-Company") !== session.session.activeOrganizationId)
       throw new DomainError("The active company changed in another tab. Reload and confirm the company before continuing.", 409);
-    const member = await auth.api.getActiveMember({ headers });
+    const member = await auth!.api.getActiveMember({ headers });
     if (!member || member.organizationId !== session.session.activeOrganizationId) throw new DomainError("You are not a member of this company workspace.", 403);
     if (req.method !== "GET" && req.path !== "/ask" && !member.role.split(",").some((role) => ["owner", "admin"].includes(role)))
       throw new DomainError("Only company owners and administrators can approve policies or modify knowledge.", 403);
-    const org = await auth.api.getOrganization({ headers, query: { organizationId: session.session.activeOrganizationId } });
+    const org = await auth!.api.getOrganization({ headers, query: { organizationId: session.session.activeOrganizationId } });
     if (!org) throw new DomainError("Company workspace not found.", 404);
     const company = companyProfile(org);
     res.locals.companyService = await companyWorkspaces.get(company);
@@ -228,9 +236,14 @@ app.use(
     });
   },
 );
-const port = Number(process.env.PORT || 3001);
-app.listen(port, process.env.HOST || "127.0.0.1", () =>
-  console.log(
-    `Ripple API: http://127.0.0.1:${port} · ${service?.repo.mode || "disconnected"}`,
-  ),
-);
+const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun) {
+  const port = Number(process.env.PORT || 3001);
+  app.listen(port, process.env.HOST || "127.0.0.1", () =>
+    console.log(
+      `Ripple API: http://127.0.0.1:${port} · ${service?.repo.mode || "disconnected"}`,
+    ),
+  );
+}
+
+export default app;

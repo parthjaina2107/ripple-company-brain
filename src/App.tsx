@@ -84,6 +84,7 @@ const statusLabel = (s?: string) =>
       : s === "unaffected"
         ? "Unaffected"
         : s || "Current";
+const hostedShareDemo = import.meta.env.VITE_SHARE_DEMO === "true";
 function Badge({ value }: { value?: string }) {
   return (
     <span className={`badge ${value || ""}`}>
@@ -314,6 +315,7 @@ export default function App({ company, onAccount, onSignOut }: { company: Compan
 
   return (
     <div className="app-shell">
+      {hostedShareDemo ? <div className="hosted-demo-banner">Shared read-only showcase · Explore the Acme policy graph, evidence, traces, and agent memory.</div> : null}
       <aside className="sidebar">
         <a
           className="brand"

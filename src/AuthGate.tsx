@@ -6,6 +6,10 @@ import { setDemoMode, setCompanyContext } from "./api";
 import App from "./App";
 
 type Session = { user: { id: string; email: string } | null; companies: CompanyProfile[]; activeCompany: CompanyProfile | null };
+const hostedShareDemo = import.meta.env.VITE_SHARE_DEMO === "true";
+
+if (hostedShareDemo) setDemoMode(true);
+
 export default function AuthGate() {
   const [session, setSession] = useState<Session>();
   const [demo, setDemo] = useState(false);
@@ -28,6 +32,7 @@ export default function AuthGate() {
     if (result.error) { setView("companies"); throw new Error(result.error.message); }
     setPassword(""); setDemo(false); setDemoMode(false); setView("signin"); await refresh();
   }
+  if (hostedShareDemo) return <App key="hosted-public-demo" company={{ id: "demo", name: "Acme", website: "", demo: true }} onAccount={() => undefined} />;
   if (!session) return <div className="auth-loading"><LoaderCircle className="spin" />Checking your workspace session…</div>;
   if (demo) return <App key="public-demo" company={{ id: "demo", name: "Acme", website: "", demo: true }} onAccount={() => { setDemo(false); setDemoMode(false); }} />;
   if (session.user && session.activeCompany && view !== "companies") return <App key={session.activeCompany.id} company={session.activeCompany} onAccount={() => setView("companies")} onSignOut={() => void execute(signOut)} />;

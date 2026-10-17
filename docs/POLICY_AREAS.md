@@ -11,6 +11,8 @@ All values below are fictional Acme sample policies effective October 1, 2026. T
 
 ## Try a new area
 
+The public Acme demo is now read-only. Steps that record or apply changes require a signed-in company workspace with its own approved baseline and source claims; use [DEMO.md](DEMO.md) for repeatable preparation. The counts below describe the original Acme fixture, not a new company's expected data.
+
 1. Open **Knowledge library**. Search for “refund” to see the guide, saved agent answer, and handling workflow. Open a source to read its text.
 2. Open **Overview** and select **Refund window** under **Graph policy area**. Inspect its separate dependency neighborhood.
 3. Open **Ask Ripple**, choose **New self-serve**, and ask “What is our refund window?” using October 16, 2026. An unchanged baseline returns 30 days with its policy reference. Select Enterprise for its 60-day exception.

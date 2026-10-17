@@ -1,5 +1,18 @@
 # Verification record
 
+## Submission preparation — October 17, 2026 (current)
+
+- `npm run check:db` passed against configured FalkorDB Cloud: 124 entities, 205 relationships; native paths: trial 28, refund 13, cancellation 10, support 11. Counts describe this saved demo, not every new company.
+- The running browser displayed **FalkorDB connected**. Its public Acme workspace remained read-only. Applied-review Markdown export completed successfully through the live API; the UI showed an export confirmation and the source/decision/evidence packet was available.
+- `npm run check:live` passed with **Gemini gemini-3.5-flash-lite and Cloud together**. Actual provider extraction from explicitly synthetic policy text → owner-approved 30-day refund baseline → 14-day change → native graph impact → applied source correction → export → 14-day recall through a new database connection. Repeated apply produced one correction record, and a second company's graph stayed empty. The two temporary graphs were removed. Fresh connection recall is a backend persistence check; it is not a claim that a browser signup/write walkthrough was automated.
+- `npm run check:model` passed exact-quote extraction (five claims), supported tool routing for all four topics, and unsupported pricing handling. `npm run check:research` passed a real public HTTPS fetch plus separate provider extraction on labeled synthetic policy text.
+- 37 automated tests pass. TypeScript/Vite production build passes. Export tests cover approval gating, foreign/missing review rejection, before/after evidence, digest validity, repeatability and no state mutation.
+- Local setup now defaults the example environment to real FalkorDB and documents Cloud, Docker, accounts, model configuration, checks, built serving and troubleshooting. Cloud was exercised; Docker was not available on this computer.
+- Entry is explicitly **Track 03 — Company Brain**. Submission copy, a blog draft, a repeatable rehearsal and team Q&A are in this repository. The model's constrained role and external publication limits are stated explicitly.
+- Still pending by request: video recording and deployment. Blog publication and final event submission have not been performed. Team members must personally rehearse and understand the work.
+
+All older entries below are historical snapshots. Earlier trial-only unsupported-topic statements, test counts, seed counts and remaining-work notes should not be read as current status. Current refunds are supported; pricing is the unsupported example.
+
 ## Routing repair and distinct sample sources — October 17, 2026
 
 - 31 automated tests pass, including the exact return-title/trial-selector regression and no-mutation validation, mixed-topic path isolation, review retirement, protection of newer reviews during historical lookup, repair of legacy wrongly routed decisions, unique sample titles/content, and compact parameterized graph writes.

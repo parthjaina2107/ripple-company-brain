@@ -29,17 +29,21 @@ These read policies, scopes, decisions, review tasks and source revisions from F
 
 ## Persist a change
 
-The write builder creates parameterized, native entity/edge upserts in a single query. Example fragment:
+The write builder creates parameterized, native entity/edge upserts in one constant-shaped query. Representative fragments from the current implementation:
 
 ```cypher
-MERGE (n0:Entity {id: $id0})
-SET n0.payload = $p0, n0.kind = $k0
-MERGE (n1:Entity {id: $id1})
-SET n1.payload = $p1, n1.kind = $k1
-MERGE (n0)-[r0:ASSERTS {id: $eid0}]->(n1)
-SET r0.payload = $ep0, r0.active = $active0
+UNWIND $nodes AS row
+MERGE (node:Entity {id: row.id})
+SET node.payload = row.payload, node.kind = row.kind
+WITH count(*) AS processed
+UNWIND $edges_ASSERTS AS row
+MATCH (source:Entity {id: row.source}), (target:Entity {id: row.target})
+MERGE (source)-[rel:ASSERTS {id: row.id}]->(target)
+SET rel.payload = row.payload, rel.active = row.active
 ```
 
 Node IDs and payloads are parameters; relationship types come from an application allowlist. User and model text are never concatenated into Cypher. New graphs begin with a `RippleMeta` marker before any read-only query. A dedicated graph name prevents collision with other workspaces.
+
+The full query repeats the relationship group for each of six allowed types. The aggregation between groups carries one row through empty arrays. Its text stays constant as the dataset grows, avoiding a different cached execution plan for every workspace size. This fixed a measured plan-cache memory problem in the original implementation.
 
 No PageRank is used. Ranking by centrality would not establish which policy is authoritative, so it is deliberately absent from this workflow.

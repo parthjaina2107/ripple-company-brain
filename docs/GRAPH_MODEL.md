@@ -9,10 +9,11 @@ All domain nodes carry the `Entity` label, a stable `id`, a queryable `kind`, an
 | workflow | A process dependent on source knowledge | content, scope, ownerId |
 | memory | A saved agent answer | content, scope, revision |
 | claim | A reviewed source assertion | value, scope, quote, sourceId, status |
-| owner | Fictional team role | title |
+| owner | Company policy owner, or fictional demo role | title |
 | decision | Record of a policy change | policyId, status, effectiveFrom, scope |
 | review | Work item created by analysis | artifactId, decisionId, path, original, proposed, sourceRevision, status |
 | correction | Immutable record of a correction or owner review | artifactId, original, proposed, content, createdAt |
+| research | Pending/approved public website snapshot | sourceUrl, content with pages/quotes/findings, createdAt, status |
 
 ```mermaid
 graph LR
@@ -43,3 +44,7 @@ The map displays a selected neighborhood. Intermediate claims are collapsed visu
 7. Persist all entity/edge upserts in one write query. Never delete and reseed a live graph.
 
 Correction records carry source IDs as queryable payload references; the `review → REPAIRS → artifact` path links the review to its source. This prototype does not add a separate graph edge for every payload reference.
+
+Applied text corrections can be exported as Markdown or JSON. The export reads the applied review and matching audit record; it does not mutate the graph. It preserves the correction's before/after revision and content, even if the source later changes again. The owner must check the external source's current revision before publishing.
+
+Each signed-in organization uses its own graph, selected only after server-side session/membership checks. Auth accounts, memberships and sessions use SQLite; company knowledge does not. Website research remains pending until explicitly approved, then creates ordinary versioned policies and document/claim edges. Researching a site does not make its statements authoritative by itself.

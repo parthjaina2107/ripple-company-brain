@@ -1,40 +1,55 @@
 # Ripple
 
-**A company knowledge change-and-repair assistant.** Record an approved policy change, trace the documents, workflows and saved answers that depend on it, and review corrections with evidence.
+**When a policy changes, how many documents silently become wrong?** Ripple follows the dependencies in FalkorDB, prepares evidence-backed corrections and exports the approved work for the document owner.
 
 See [the company policy guide](docs/POLICY_AREAS.md) for trial, refund, cancellation and support examples and a step-by-step walkthrough.
 
-Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Primary track: **Company Brain**. Secondary track: **Agents That Act on Connected Data**, once live FalkorDB and model-backed behavior are verified.
+For company login and official website research, start with [Company workspaces](docs/COMPANY_WORKSPACES.md).
+
+Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declared submission track: **Track 03 — Company Brain**.
+
+Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). Video recording and deployment are still pending; this repository does not claim the submission is complete without the required video.
+
+See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
 
 ## What is implemented
 
 - A responsive React workspace with overview, knowledge map, change studio, knowledge library, review queue, decision history, and policy Q&A.
+- Email/password sessions, company membership and separate company graphs. Owners/admins can write; members can read and ask questions.
+- Bounded research of a supplied public HTTPS website, with exact quotes, source links and explicit human approval before importing policy baselines.
 - Versioned trial duration, refund window, cancellation notice, and initial support response policies, with approval status, audience and effective date.
 - Multi-hop dependency discovery using `ASSERTS` and `DEPENDS_ON` relationships.
 - Three outcomes: **confirmed contradiction**, **owner review required**, and **unaffected**.
 - Reviewed, targeted text corrections; original content, claim versions and correction history are preserved.
+- Download approved corrections as Markdown or JSON, including before/after text, policy provenance, evidence paths and a content checksum. External publication remains an owner action.
 - Stale revision / superseded-policy protection and idempotent apply operations.
 - Pasted-document claim extraction, explicit user review and graph ingestion.
 - Persistent policy lookup in a fresh session, with source references and tool traces.
-- Optional OpenAI structured extraction and read-only function calling. No model-generated Cypher or unreviewed model writes.
+- Native Gemini structured extraction and read-only function calling, with optional OpenAI support. Model text proposes and routes; deterministic policy checks and human approval govern writes.
 
-All company data and owner roles are **fictional**. The initial demo date is **2026-10-16** and is editable. Approval controls simulate an authorized company user; there is no identity/role authentication in this local prototype.
+The public Acme workspace contains **fictional** data and is read-only. Signed-in company workspaces start empty, with separate policy graphs and real session/membership checks. Creating a workspace does not verify ownership of a company or website.
 
 ## Run locally
 
-Requires Node.js 22 or newer. This project uses TypeScript on both frontend and backend, so Python is not required.
+Requires Node.js 22.13 or newer (Node 24 recommended for built-in SQLite). This project uses TypeScript on both frontend and backend, so Python is not required.
 
 ```powershell
-npm.cmd install
-Copy-Item .env.example .env
+npm.cmd ci
+# New checkout only: keep an existing configured .env.
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+# Configure FalkorDB Cloud in .env, or run Docker first:
+# docker compose up -d
+npm.cmd run check:db
 npm.cmd run dev
 ```
 
 Open **http://127.0.0.1:5173**. The API runs at **http://127.0.0.1:3001**.
 
+Create an account, then a company workspace with its official HTTPS website. Open **Policy research**, review findings and approve the relevant baseline policies. Auth sessions and password hashes are stored in ignored `.data/auth.sqlite`; a local signing secret is generated in `.data/auth-secret`. Never commit either file. Set `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` explicitly for production, and persist this directory securely. Email verification, recovery and invitation delivery are not configured.
+
 On macOS/Linux, use `npm` instead of `npm.cmd`, and `cp .env.example .env`.
 
-The default `RIPPLE_MODE=preview` provides an explicitly labeled local simulator persisted in `.data/preview.json`. This enables UI development without a database or model key. **Preview mode is not the FalkorDB-backed hackathon submission.** It does not silently replace FalkorDB if a configured cloud connection fails.
+The example environment defaults to live FalkorDB on local Docker. Use your Cloud URL instead if Docker is unavailable. Optional `RIPPLE_MODE=preview` provides an explicitly labeled development simulator persisted in `.data/preview.json`. **Preview mode is not the FalkorDB-backed hackathon submission.** It never silently replaces a failed Cloud connection.
 
 ### Connect FalkorDB Cloud
 
@@ -82,20 +97,17 @@ For OpenAI, set `AI_PROVIDER=openai`, `OPENAI_API_KEY` and `OPENAI_MODEL`. To ex
 
 Without a key, the app explicitly shows **structured lookup mode** and uses a pattern extractor for explicit numeric claims in the four supported policy areas. This mode is not presented as live LLM inference. It skips ambiguous audiences, negative statements and conditional claims. Review extracted claims even when a model is enabled. Model failures surface as errors; they do not trigger a silent offline fallback.
 
-## Demo walkthrough
+## Change workflow
 
-1. Open **Change studio**. Keep the prefilled 7-day, approved, new-self-serve policy and both dates at October 16, 2026.
-2. Click **Record & analyze change**. On a fresh seed, expect **5 conflicts**, **3 owner reviews**, and **2 unaffected enterprise items**.
-3. Open an enterprise result: its audience differs, so the 14-day contract remains valid.
-4. Open **Getting started guide → Review correction**. Inspect the stored evidence path and 14-to-7-day text comparison.
-5. Click **Approve & apply correction**. The source moves to revision 2; its old claim and the original text remain in history.
-6. Open **Ask Ripple**, ask about the self-serve trial: the applicable policy says 7 days. Switch the audience to Enterprise: it says 14 days.
-7. Refresh the browser, open Ask Ripple again and repeat. The decision comes from persisted storage, not chat state.
-8. Ask “What is our refund window?” to retrieve its separate policy. Ask “What is our pricing policy?” for a missing-knowledge response.
-9. In **Knowledge library**, add a fictional document with an explicit old trial claim. Extract, review and save the claim. Open the existing decision from the log and refresh analysis: the new source is included.
-10. Optional: record a proposed change or a future effective date. It does not override the currently approved policy.
+Use a signed-in company workspace. Acme supports public browsing, Q&A and applied-correction exports; its mutation controls are disabled.
 
-The development preview may already contain decisions created during QA. A fresh Cloud graph starts from the original fixture.
+1. Establish an approved baseline through reviewed public website findings or a manually recorded decision, and ingest documents with reviewed claims.
+2. Ask the current policy for a specific audience/date, then record a different approved policy in Change studio.
+3. Inspect the graph paths, direct conflicts, indirect workflow reviews and preserved audience exceptions.
+4. Approve a safe correction, inspect the source revision and history, then export its Markdown/JSON packet from Review queue with the Applied filter.
+5. Ask again and refresh the browser to verify persisted policy recall. Recording the policy changes the authoritative answer; applying the correction repairs a stale source.
+
+See [DEMO.md](docs/DEMO.md) for exact synthetic refund data and dates. Results depend on the company's sources; do not promise fixed counts on arbitrary data. Questions about unsupported pricing return missing knowledge. Proposed and future changes do not override current policies.
 
 ## Architecture
 
@@ -116,6 +128,8 @@ In FalkorDB mode all authoritative entities, relationships, decisions, claims an
 ```powershell
 npm.cmd test
 npm.cmd run build
+npm.cmd run check:db
+npm.cmd run check:live
 ```
 
 Behavior tests cover applicability, exceptions, multi-hop discovery, corrections, idempotency, stale sources, persistence, ingestion and missing knowledge. These simulator/domain tests **do not prove the Cloud connection or live model calls work**. Use the live verification checklist after adding credentials.
@@ -127,7 +141,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-Open http://127.0.0.1:3001. This is a local prototype, not an internet-ready authenticated deployment. Run one API process per workspace; do not scale replicas against this graph without a shared concurrency strategy. For hosted use, deploy the Node process on a host with TCP access to FalkorDB, add authentication and authorization, configure `HOST`, `PORT` and `APP_ORIGIN`, and keep secrets server-side. No public deployment has been created by this repository.
+Open http://127.0.0.1:3001. This remains a local prototype. Run one API process; do not scale replicas against company graphs without a shared concurrency strategy. For hosted use, deploy the Node process on a host with persistent SQLite storage and TCP access to FalkorDB, configure trusted HTTPS origins and a stable auth secret, and complete email verification/recovery and operational hardening. No public deployment has been created by this repository.
 
 ## Deliberate limits
 
@@ -135,6 +149,7 @@ Open http://127.0.0.1:3001. This is a local prototype, not an internet-ready aut
 - A source with multiple claims for the same topic or multiple audiences requires owner review; no automatic patch is proposed. Corrections to one topic preserve assertions for other topics in the same source.
 - Workflow reviews record a human finding; they do not execute or rewrite external business systems.
 - Document changes happen inside Ripple, not in Slack, Notion, email or Google Drive.
+- Approved correction exports enable an owner handoff; downloading them does not publish an external source. The content checksum is not a digital signature.
 - Historical lookup is effective-date based. Full bitemporal “what did we know at the time?” reconstruction is not implemented.
 - A bounded six-hop traversal and whole-workspace reads suit the small demo dataset, not enterprise-scale graphs.
 - A stale review is blocked at apply time. Refresh analysis or analyze the latest decision before acting.

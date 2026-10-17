@@ -14,6 +14,8 @@ Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](do
 
 See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
 
+See [security controls and verification](docs/SECURITY.md) for response headers, origin restrictions, signed sandbox sessions, server validation and shared FalkorDB rate limits.
+
 ## What is implemented
 
 - A responsive React workspace with overview, knowledge map, change studio, knowledge library, review queue, decision history, and policy Q&A.

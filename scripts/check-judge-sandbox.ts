@@ -11,6 +11,7 @@ process.env.RIPPLE_SHARE_DEMO = "true";
 process.env.RIPPLE_MODE = "falkordb";
 process.env.AI_PROVIDER = "offline";
 process.env.RIPPLE_SANDBOX_SECRET = randomBytes(32).toString("hex");
+process.env.RIPPLE_SECURITY_GRAPH = `security_verify_${randomBytes(12).toString("hex")}`;
 const { default: handler } = await import("../api/judge.js");
 const server = createServer(handler);
 await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -40,6 +41,8 @@ try {
   assert.equal(created.size, 2);
   assert.equal((await request("/workspace")).response.status, 401);
   assert.equal((await request("/workspace", cookieA + "invalid")).response.status, 401);
+  assert.equal((await request("/decisions", cookieA, { topic: "refund_window", title: "Invalid duration", value: -1, scope: "new", effectiveFrom: "2026-10-17", asOf: "2026-10-17", status: "approved" })).response.status, 400);
+  assert.equal((await request("/research", cookieA, { website: "http://127.0.0.1/" })).response.status, 400);
   assert.equal((await request("/ask", cookieA, { question: "What is our refund window?", scope: "new", asOf: "2026-10-17" }, "https://untrusted.example")).response.status, 403);
   const ask = (cookie: string) => request("/ask", cookie, { question: "What is our refund window?", scope: "new", asOf: "2026-10-17" });
   assert.equal((await ask(cookieA)).data.sources[0].value, 30);
@@ -69,6 +72,7 @@ try {
   db = await FalkorDB.connect(connectionOptions);
   (await db.connection).on("error", () => {});
   for (const graph of created) await db.selectGraph(graph).delete();
+  if ((await db.list()).includes(process.env.RIPPLE_SECURITY_GRAPH!)) await db.selectGraph(process.env.RIPPLE_SECURITY_GRAPH!).delete();
   await db.close();
   console.log(JSON.stringify({ temporaryJudgeGraphsRemoved: created.size }));
 }

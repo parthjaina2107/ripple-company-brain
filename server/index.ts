@@ -14,6 +14,8 @@ import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
 import { createAuth, companyProfile } from "./auth.js";
 import { CompanyWorkspaces } from "./company-workspaces.js";
 import { graphFromCookie, sandboxCompany, sandboxCookie, sandboxLifetime, sandboxOperationAllowed, sandboxService, startSandbox } from "./judge-sandbox.js";
+import { requestSecurity } from "./security.js";
+import { apiRateLimit, rateStore } from "./rate-limit.js";
 
 const date = z.iso.date();
 const scope = z.enum(["new", "enterprise", "all"]);
@@ -35,24 +37,8 @@ const app = express();
 // local SQLite auth database on serverless storage and protects shared demo data.
 const shareDemo = process.env.RIPPLE_SHARE_DEMO === "true";
 app.disable("x-powered-by");
-// The API and session cookies share the frontend origin through the Vite proxy.
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowed = process.env.APP_ORIGIN;
-  if (
-    origin &&
-    ![
-      allowed,
-      "https://ripple-company-brain.vercel.app",
-      "http://127.0.0.1:5173",
-      "http://localhost:5173",
-      `http://127.0.0.1:${process.env.PORT || 3001}`,
-      `http://localhost:${process.env.PORT || 3001}`,
-    ].includes(origin)
-  )
-    return res.status(403).json({ error: "Origin not allowed." });
-  next();
-});
+app.use(requestSecurity);
+app.use(apiRateLimit(rateStore));
 const auth = shareDemo ? undefined : (await createAuth()).auth;
 const companyWorkspaces = new CompanyWorkspaces();
 if (auth) app.all("/api/auth/*splat", toNodeHandler(auth));

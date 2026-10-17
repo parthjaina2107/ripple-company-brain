@@ -1,6 +1,13 @@
 # Verification record
 
-## Interactive judge sandbox — October 17, 2026 (current)
+## Security report fixes — October 17, 2026 (current)
+
+- Confirmed wildcard CORS on static responses and missing response security headers. Added exact production CORS, CSP, frame denial, MIME-sniffing prevention, referrer/permissions policies and API no-store headers through CDN configuration and Express. Google Fonts/style attributes remain explicitly supported; scripts and connections are same-origin.
+- Added shared atomic FalkorDB rate counters for sandbox session requests, questions, research and writes, with 429/retry headers and fail-closed 503 behavior. Cloud concurrency/identity/window checks passed through two independent connections; the temporary graph was removed.
+- 42 automated tests, production build and the Cloud judge HTTP walkthrough passed. The walkthrough now also checks direct invalid decision data and private/local website submissions. Only its disposable judge/security graphs were cleaned up.
+- Reviewed the report's absent-backend/auth/validation claims against the actual signed-session and company-membership code. These claims did not describe the implementation. See [SECURITY.md](SECURITY.md) for controls and limitations.
+
+## Interactive judge sandbox — October 17, 2026 (earlier verification)
 
 - The shared tour remains read-only. A new **Try your own sandbox** action creates a separate seeded FalkorDB Cloud graph and signed HTTP-only visitor cookie. Two-hour expiry, a dedicated cleanup namespace and prototype admission limits bound its use. Real company authentication remains local; no hosted Gemini key was added.
 - `npm run check:judge` passed against real Cloud through the actual Vercel HTTP adapter: separate visitors, valid/forged/missing cookies, origin checks, 30-to-14-day refund decision, native graph impact, correction, repeated apply, export and session resume. Visitor B retained 30 days. Only the two temporary graphs created by that verification were removed.

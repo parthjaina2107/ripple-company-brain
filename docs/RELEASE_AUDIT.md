@@ -32,4 +32,4 @@ This maps the remaining-issues audit to the October 17 release. It is evidence f
 
 Real-company hosted signup/recovery/invitations/domain verification, scheduled external website drift monitoring, arbitrary contract conditions, unrestricted conversation memory and integrations that edit unrelated company websites/Slack/Notion/Drive are not implemented. Company account/membership functionality remains available locally. The public sandbox exposes the full implemented synthetic policy workflow; the submission should describe that scope accurately.
 
-The [demo video link](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing) is included in the submission materials. Confirm access without sign-in; blog publication and event-portal submission still require owner action. Database/provider availability and shared hosting quotas cannot be guaranteed by application tests.
+Blog publication and event-portal submission still require owner action. Database/provider availability and shared hosting quotas cannot be guaranteed by application tests.

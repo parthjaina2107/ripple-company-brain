@@ -4,7 +4,7 @@
 
 Last updated: October 18, 2026. Publication status: repository draft; an external article has not been published.
 
-[Try the working prototype](https://ripple-company-brain.vercel.app) · [Watch the three-minute demo](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing) · [Explore the source](https://github.com/parthjaina2107/ripple-company-brain)
+[Try the working prototype](https://ripple-company-brain.vercel.app) · [Explore the source](https://github.com/parthjaina2107/ripple-company-brain)
 
 ## The copies outlive the decision
 
@@ -80,8 +80,6 @@ The shared tour is read-only. **Try your own sandbox** opens a separate writable
 5. Download its correction packet, then open **Acme website** and click **Publish approved copy**. Inspect the revised customer copy and publication receipt.
 6. Ask the same question again: **14 days**. Reload the browser and repeat: **14 days**. Enterprise remains **60 days**; the self-serve answer on **October 1** remains **30 days**.
 
-The [three-minute working demo](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing) records these actual browser interactions, with synthetic narration. It shows the working prototype throughout, including publishing, reload and audience/date checks.
-
 ## Keep concurrent requests from undoing a repair
 
 An in-process queue is insufficient when two hosted server instances can write to the same graph. Ripple reads entities, relationships and workspace metadata in one consistent query. Its atomic save checks the revision before updating native records:
@@ -102,7 +100,7 @@ There is an important distinction in that story: the approved decision changes t
 
 The release verification record documents **44 passing automated tests** and the TypeScript/Vite production build. Separate Cloud checks exercise the real HTTP adapter, visitor isolation, correction integrity, exports, publication and session resume. Two independent database connections verify stale-save rejection, command deduplication, capacity limits and backup restoration. Live Gemini checks cover extraction and routing across all four supported topics.
 
-The October 18 browser recording additionally exercised the deployed site's 30-to-14-day refund change, evidence review, approved correction, downloaded packet, controlled publication, recall after refresh, enterprise exception and historical answer. These are recorded results, not a guarantee that hosting, database or provider services will never fail.
+The October 18 browser walkthrough additionally exercised the deployed site's 30-to-14-day refund change, evidence review, approved correction, downloaded packet, controlled publication, recall after refresh, enterprise exception and historical answer. These checks are not a guarantee that hosting, database or provider services will never fail.
 
 The preview simulator is useful for development, but it is not evidence of a qualifying database-backed submission. Live checks are separate and explicit. See the [verification record](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/VERIFICATION.md).
 
@@ -125,10 +123,9 @@ The useful result today is concrete: a policy decision becomes a set of traceabl
 ## Try it and inspect the implementation
 
 - [Live Ripple prototype](https://ripple-company-brain.vercel.app) — choose **Try your own sandbox**.
-- [Three-minute working demo](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing).
 - [Public source repository](https://github.com/parthjaina2107/ripple-company-brain).
 - [Complete local setup](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/LOCAL_SETUP.md).
 - [Graph model](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/GRAPH_MODEL.md), [query explanations](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/QUERIES.md) and [executable queries](https://github.com/parthjaina2107/ripple-company-brain/blob/main/server/repository.ts).
 - [Judge walkthrough](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/JUDGE_SANDBOX.md) and [security boundaries](https://github.com/parthjaina2107/ripple-company-brain/blob/main/docs/SECURITY.md).
 
-**AI assistance:** OpenAI Codex assisted with implementation, debugging, testing and documentation. The demo uses synthetic English narration over actual app interactions.
+**AI assistance:** OpenAI Codex assisted with implementation, debugging, testing and documentation.

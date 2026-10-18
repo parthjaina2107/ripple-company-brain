@@ -33,7 +33,6 @@ The current domain covers trial duration, refund windows, cancellation notice an
 - Demo rehearsal: [DEMO.md](DEMO.md).
 - Blog draft: [BLOG_POST.md](BLOG_POST.md).
 - Deployment: [live Acme demo](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud and Gemini. Click **Try your own sandbox** for the guided synthetic workflow; see [judge instructions](JUDGE_SANDBOX.md). Use local setup for real company accounts.
-- Demo video: [three-minute working prototype](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing), showing the live policy change, evidence, correction, publishing and persistent recall workflow with synthetic narration.
 - Blog: written locally; add a published URL only after publishing and checking the event's submission process.
 
 ## AI assistance disclosure

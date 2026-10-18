@@ -34,6 +34,5 @@ No code or test can promise zero future defects. The release checks provide spec
 ## Owner actions before submitting
 
 - Rehearse once with your team and ensure a private-window visitor can open the link.
-- Include the [three-minute working prototype video](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing) in the event submission and confirm judges can open it without signing in.
 - Publish the blog if entering that category, then add the actual URL.
 - Enter the live URL, repository, video and accurate disclosure into the event portal; verify submission confirmation.

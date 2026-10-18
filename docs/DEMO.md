@@ -1,6 +1,6 @@
 # Repeatable three-minute walkthrough
 
-This is a rehearsal script, not a recorded video. The [hosted Acme demo](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud and Gemini. Click **Try your own sandbox** for an isolated writable graph, guided steps and controlled Acme publishing; follow [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md). Video recording is still outstanding.
+This is the reproducible rehearsal script. A narrated walkthrough and short submission edit have been produced locally; their public video URL is intentionally omitted from this repository update. The [hosted Acme demo](https://ripple-company-brain.vercel.app) uses live FalkorDB Cloud and Gemini. Click **Try your own sandbox** for an isolated writable graph, guided steps and controlled Acme publishing; follow [JUDGE_SANDBOX.md](JUDGE_SANDBOX.md).
 
 For a quick shared tour: open Overview, switch graph policy areas, inspect sources in Knowledge library, ask the trial question for self-serve and enterprise customers, compare historical dates, then inspect Review queue and download an existing applied correction. Ask `How long does a refund take to process?` to demonstrate the unsupported-knowledge boundary. Open your own sandbox to perform the writable before/after flow without changing this tour.
 

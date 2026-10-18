@@ -1,6 +1,6 @@
 # Complete local setup for reviewers
 
-Use Node.js 24 LTS and npm. Node 22.13+ is the minimum; authentication uses built-in `node:sqlite`. Python is not required. Use one API process, a persistent working directory and a live FalkorDB instance.
+Use Node.js 24 LTS and npm. Node 22.13+ is the minimum; authentication uses built-in `node:sqlite`. Python is not required. Use a persistent working directory and a live FalkorDB instance. The default development ports assume one local API process.
 
 ## 1. Get the source
 
@@ -11,7 +11,7 @@ npm.cmd ci
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-These instructions describe the current working tree. Updates are pushed only on the owner's request. On macOS/Linux use `npm`, `cd` and `test -f .env || cp .env.example .env`. Do not overwrite an existing `.env` containing credentials.
+On macOS/Linux use `npm`, `cd` and `test -f .env || cp .env.example .env`. Do not overwrite an existing `.env` containing credentials.
 
 ## 2. Choose a real database
 
@@ -60,7 +60,7 @@ npm.cmd run check:live
 
 `check:research` fetches a real public example page and tests model extraction separately on labeled synthetic policy text. `check:live` uses the configured live model and Cloud database together: baseline → changed policy → native dependency paths → correction → export → recall through a new database connection. It removes only its own randomly named test graphs. It does not modify your company graph or create user accounts. Artifacts are written under ignored `artifacts/`.
 
-To run the built frontend with the API, stop the development command, set `BETTER_AUTH_URL=http://127.0.0.1:3001` in `.env`, run `npm start`, and open http://127.0.0.1:3001. Switch the URL back to port 5173 before returning to Vite. Do not run two API instances against the same company graph.
+To run the built frontend with the API, stop the development command, set `BETTER_AUTH_URL=http://127.0.0.1:3001` in `.env`, run `npm start`, and open http://127.0.0.1:3001. Switch the URL back to port 5173 before returning to Vite. Concurrent stale writes to a company graph return 409; refresh and review the latest state before retrying.
 
 ## Troubleshooting
 

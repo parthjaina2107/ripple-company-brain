@@ -13,7 +13,7 @@ Current declared track: **Track 03 — Company Brain**. This is a readiness reco
 | Submission description | Written | [SUBMISSION.md](SUBMISSION.md) |
 | Blog post | Draft written, not published | [BLOG_POST.md](BLOG_POST.md); review, publish, add actual URL |
 | Team technical understanding | Requires team rehearsal | [JUDGE_QA.md](JUDGE_QA.md); each person must explain their work |
-| Demo video | Not recorded | Follow [DEMO.md](DEMO.md); record and add the actual working URL before submission |
+| Demo video | Produced locally; public URL intentionally omitted | Narrated walkthrough and short submission edit exist locally; provide the working video URL in the final event submission |
 | Deployment | Live tour and writable judge sandboxes | [Acme demo](https://ripple-company-brain.vercel.app); native FalkorDB Cloud and live Gemini with usage limits |
 | Judge access | Public HTTP access verified | Unauthenticated requests to the production page and health endpoint returned HTTP 200 without redirects |
 | Hosted QA fixes | Deployed and API-verified | Exact site Origin accepted; other origins rejected; refund-processing questions return no applicable policy; library has an empty-search state |
@@ -25,4 +25,4 @@ Current declared track: **Track 03 — Company Brain**. This is a readiness reco
 
 When a GitHub push is requested, include the corresponding README, model/query notes, tests and verification updates with the implementation. Keep commits meaningful, preserve the configured privacy-safe author identity, and never add credentials, auth databases, signing secrets or private company exports. Do not describe a local draft as published.
 
-Checked against the [official rules](https://www.wemakedevs.org/hackathons/falkordb/rules) on October 17, 2026. A demo video is part of the submission requirements; deferring recording does not satisfy that requirement. A live deployment is preferred, with complete local setup accepted as the alternative.
+Checked against the [official rules](https://www.wemakedevs.org/hackathons/falkordb/rules) on October 18, 2026; see the [requirements map](SUBMISSION_REQUIREMENTS.md). A working demo video is required in the final submission; a deployed link alone does not replace it. A live deployment is preferred, with complete local setup accepted as the alternative.

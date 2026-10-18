@@ -33,11 +33,11 @@ The current domain covers trial duration, refund windows, cancellation notice an
 - Demo rehearsal: [DEMO.md](DEMO.md).
 - Blog draft: [BLOG_POST.md](BLOG_POST.md).
 - Deployment: [live Acme demo](https://ripple-company-brain.vercel.app), backed by FalkorDB Cloud and Gemini. Click **Try your own sandbox** for the guided synthetic workflow; see [judge instructions](JUDGE_SANDBOX.md). Use local setup for real company accounts.
-- Demo video: not recorded yet; add the actual working video URL before submission.
+- Demo video: narrated walkthrough and short submission edit produced locally. The public video URL is intentionally omitted from this repository update; provide it in the final event submission.
 - Blog: written locally; add a published URL only after publishing and checking the event's submission process.
 
 ## AI assistance disclosure
 
 OpenAI Codex assisted with implementation, debugging, testing and documentation.
 
-Official requirements checked October 17, 2026: [event rules](https://www.wemakedevs.org/hackathons/falkordb/rules). Keep the actual registration, video, repository and final submission status accurate; no award outcome is promised.
+Official requirements checked October 18, 2026: [event rules](https://www.wemakedevs.org/hackathons/falkordb/rules). See the [requirements map](SUBMISSION_REQUIREMENTS.md). Keep the actual registration, video, repository and final submission status accurate; no award outcome is promised.

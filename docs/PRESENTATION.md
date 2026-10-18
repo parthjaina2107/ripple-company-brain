@@ -34,6 +34,6 @@ No code or test can promise zero future defects. The release checks provide spec
 ## Owner actions before submitting
 
 - Rehearse once with your team and ensure a private-window visitor can open the link.
-- Record/link the requested demo video; this work does not create one.
+- Review the locally produced walkthrough and short submission edit, then provide a working public video URL in the event submission. That URL is intentionally omitted from this repository update.
 - Publish the blog if entering that category, then add the actual URL.
 - Enter the live URL, repository, video and accurate disclosure into the event portal; verify submission confirmation.

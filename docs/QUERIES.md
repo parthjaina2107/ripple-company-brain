@@ -11,21 +11,25 @@ RETURN [n IN nodes(p) | n.id] AS ids,
        [r IN relationships(p) | type(r)] AS relations
 ```
 
-Parameter: `target = 'topic-trial'`.
+Parameter: `target = 'topic-trial'`, `'topic-refund'`, `'topic-cancellation'` or `'topic-support'`, depending on the selected policy area.
 
 This powers impact analysis. It discovers documents through claims and workflows through dependent documents. The application checks the start node kind, preserves the returned evidence path, and classifies each item against the applicable policy. A dependency alone never proves a contradiction. Old inactive assertion links do not support current results.
 
 ## Load authoritative workspace data
 
 ```cypher
-MATCH (n:Entity) RETURN n.payload AS payload
+MATCH (n:Entity) RETURN n.payload AS payload, 'node' AS category
+UNION ALL
+MATCH (:Entity)-[r]->(:Entity) RETURN r.payload AS payload, 'edge' AS category
+UNION ALL
+MATCH (m:RippleMeta {id: 'workspace'})
+RETURN toString(coalesce(m.revision, 0)) AS payload, 'revision' AS category
+UNION ALL
+MATCH (m:RippleMeta {id: 'workspace'})
+RETURN coalesce(m.commands, '[]') AS payload, 'commands' AS category
 ```
 
-```cypher
-MATCH (a:Entity)-[r]->(b:Entity) RETURN r.payload AS payload
-```
-
-These read policies, scopes, decisions, review tasks and source revisions from FalkorDB. For the small hackathon graph, policy applicability is evaluated in TypeScript over these records. It is not an LLM judgment.
+This single query reads policies, scopes, decisions, review tasks, source revisions and save metadata from FalkorDB in one consistent snapshot. For the small hackathon graph, policy applicability is evaluated in TypeScript over these records. It is not an LLM judgment.
 
 ## Persist a change
 

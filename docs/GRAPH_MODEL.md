@@ -14,6 +14,7 @@ All domain nodes carry the `Entity` label, a stable `id`, a queryable `kind`, an
 | review | Work item created by analysis | artifactId, decisionId, path, original, proposed, sourceRevision, status |
 | correction | Immutable record of a correction or owner review | artifactId, original, proposed, content, createdAt |
 | research | Pending/approved public website snapshot | sourceUrl, content with pages/quotes/findings, createdAt, status |
+| publication | Receipt for an explicitly published sandbox help-centre revision | artifactId, sourceRevision, decisionId, actor, createdAt |
 
 ```mermaid
 graph LR
@@ -27,6 +28,7 @@ graph LR
   A -->|OWNED_BY| R[Owner role]
   D -->|CREATES| Q[Review task]
   Q -->|REPAIRS| A
+  U[Publication receipt] -->|DEPENDS_ON| A
 ```
 
 The `topic-trial`, `topic-refund`, `topic-cancellation`, and `topic-support` nodes anchor separate policy neighborhoods across versions. This finds old, uncorrected knowledge after more than one policy update. The applicable policy is selected separately using topic, approval, audience, effective date and recorded version order. Records without an explicit topic retain their legacy trial-duration meaning. Corrections retire only assertions for the changed topic.
@@ -45,6 +47,10 @@ The map displays a selected neighborhood. Intermediate claims are collapsed visu
 
 Correction records carry source IDs as queryable payload references; the `review → REPAIRS → artifact` path links the review to its source. This prototype does not add a separate graph edge for every payload reference.
 
-Applied text corrections can be exported as Markdown or JSON. The export reads the applied review and matching audit record; it does not mutate the graph. It preserves the correction's before/after revision and content, even if the source later changes again. The owner must check the external source's current revision before publishing.
+Applied text corrections can be exported as Markdown or JSON. The export reads the applied review and matching audit record; it does not mutate the graph. It preserves the correction's before/after revision and content, even if the source later changes again. New correction records identify the server-derived actor and approval reason. A SHA-256 checksum verifies packet content, not the identity of its author.
+
+Publishing is a separate explicit action to the controlled Acme sandbox help centre. It rechecks the source revision and approved correction, then records a publication receipt. This does not update arbitrary company websites. For external publishing, the owner must check the external source's current revision.
+
+`RippleMeta` stores the workspace revision and bounded command-key history. A single query reads entities, relationships and metadata consistently; an atomic revision guard rejects stale saves. Session leases and rate counters are operational records, separate from company knowledge. See [actual queries](QUERIES.md).
 
 Each signed-in organization uses its own graph, selected only after server-side session/membership checks. Auth accounts, memberships and sessions use SQLite; company knowledge does not. Website research remains pending until explicitly approved, then creates ordinary versioned policies and document/claim edges. Researching a site does not make its statements authoritative by itself.

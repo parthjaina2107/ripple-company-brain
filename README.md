@@ -1,6 +1,6 @@
 # Ripple
 
-**When a policy changes, how many documents silently become wrong?** Ripple follows the dependencies in FalkorDB, prepares evidence-backed corrections and exports the approved work for the document owner.
+**When a policy changes, how many documents silently become wrong?** Ripple follows dependencies in FalkorDB, prepares evidence-backed corrections, and lets an owner approve, export and publish repaired copies to a controlled demo help centre.
 
 See [the company policy guide](docs/POLICY_AREAS.md) for trial, refund, cancellation and support examples and a step-by-step walkthrough.
 
@@ -10,13 +10,45 @@ Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declare
 
 **Hosted demo:** [Open Ripple](https://ripple-company-brain.vercel.app). Click **Try your own sandbox** for the guided question → change → review → publish → question flow in your own FalkorDB Cloud graph. Hosted Gemini extracts candidate claims and selects a read-only graph tool; approved graph values determine the answer. Follow the [judge walkthrough](docs/JUDGE_SANDBOX.md).
 
-Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). The demo video still needs to be recorded and linked before submission.
+Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). A narrated walkthrough and a shorter submission edit have been produced locally. The public video link is intentionally omitted from this repository update.
 
 See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
 
 Use [the presentation script](docs/PRESENTATION.md) for the demo narrative and accurate feature boundaries.
 
 See [security controls and verification](docs/SECURITY.md) for response headers, origin restrictions, signed sandbox sessions, server validation and shared FalkorDB rate limits.
+
+## Submission at a glance
+
+Prepared against the [official Graph Hacks rules](https://www.wemakedevs.org/hackathons/falkordb/rules), checked October 18, 2026. See the [detailed requirements map](docs/SUBMISSION_REQUIREMENTS.md).
+
+| Requirement | Where to find it |
+|---|---|
+| Public source repository | [ripple-company-brain](https://github.com/parthjaina2107/ripple-company-brain) |
+| README setup instructions | [Run locally](#run-locally), [complete reviewer setup](docs/LOCAL_SETUP.md), [.env.example](.env.example) |
+| Graph data model | [Model below](#graph-data-model), [full model and versioning](docs/GRAPH_MODEL.md) |
+| Dependent Cypher queries / algorithms | [Core query below](#core-cypher-query), [query explanations](docs/QUERIES.md), [executable repository queries](server/repository.ts), [policy and impact logic](server/domain.ts) |
+| Live deployment | [Open Ripple](https://ripple-company-brain.vercel.app) — no account needed for a judge sandbox |
+| Declared track | **Track 03 — Company Brain** |
+| AI coding-assistant disclosure | [Disclosure below](#ai-assistance-disclosure) |
+| Demo video | Produced locally; public link intentionally omitted here and still required in the final event submission |
+
+This repository is not confirmation of registration or final event submission. The team should be able to explain the graph model, queries, architecture and technical decisions; [judge Q&A](docs/JUDGE_QA.md) and [the presentation script](docs/PRESENTATION.md) cover those details.
+
+## Try the complete workflow
+
+1. Open the live deployment and click **Try your own sandbox**. A fresh sandbox uses fictional Acme data in its own FalkorDB graph.
+2. Ask `What is our refund window?` for **New self-serve**, as of **2026-10-17**: **30 days**.
+3. In **Change studio**, record an approved **14-day refund window** for New self-serve, effective and analyzed as of **2026-10-17**.
+4. Inspect the confirmed conflicts, workflow reviews and unaffected enterprise exception. Open an evidence path.
+5. Apply one confirmed correction in **Review queue**, then explicitly publish it from **Acme website**. Inspect the revised customer copy and receipt. Markdown/JSON exports are available on applied reviews.
+6. Ask again: **14 days**. Refresh and repeat. Enterprise remains **60 days**; the self-serve policy on **2026-10-01** remains **30 days**.
+
+The policy decision changes the authoritative answer; applying and publishing repair downstream copies. Try **Policy research** with the prefilled [fictional public policy page](https://ripple-company-brain.vercel.app/acme-policies.html), or add a document in **Knowledge library**. Follow [the full judge walkthrough](docs/JUDGE_SANDBOX.md) for these additional features and resource limits.
+
+## Data provenance
+
+The public tour, sandbox seed and Acme policy page are synthetic demonstration data, maintained in [server/seed.ts](server/seed.ts), [server/sample-data.ts](server/sample-data.ts) and [public/acme-policies.html](public/acme-policies.html). Website research is limited to permitted public HTTPS HTML/text. Research findings remain pending until explicitly reviewed and approved. No private, personal, login-protected or paywalled records should be imported into the graph.
 
 ## What is implemented
 
@@ -40,6 +72,8 @@ The shared Acme tour contains **fictional** data and is read-only. **Judge sandb
 Requires Node.js 22.13 or newer (Node 24 recommended for built-in SQLite). This project uses TypeScript on both frontend and backend, so Python is not required.
 
 ```powershell
+git clone https://github.com/parthjaina2107/ripple-company-brain.git
+Set-Location ripple-company-brain
 npm.cmd ci
 # New checkout only: keep an existing configured .env.
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
@@ -53,7 +87,7 @@ Open **http://127.0.0.1:5173**. The API runs at **http://127.0.0.1:3001**.
 
 Create an account, then a company workspace with its official HTTPS website. Open **Policy research**, review findings and approve the relevant baseline policies. Auth sessions and password hashes are stored in ignored `.data/auth.sqlite`; a local signing secret is generated in `.data/auth-secret`. Never commit either file. Set `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` explicitly for production, and persist this directory securely. Email verification, recovery and invitation delivery are not configured.
 
-On macOS/Linux, use `npm` instead of `npm.cmd`, and `cp .env.example .env`.
+On macOS/Linux, use `cd ripple-company-brain`, `npm` instead of `npm.cmd`, and `test -f .env || cp .env.example .env`.
 
 The example environment defaults to live FalkorDB on local Docker. Use your Cloud URL instead if Docker is unavailable. Optional `RIPPLE_MODE=preview` provides an explicitly labeled development simulator persisted in `.data/preview.json`. **Preview mode is not the FalkorDB-backed hackathon submission.** It never silently replaces a failed Cloud connection.
 
@@ -105,7 +139,7 @@ Without a key, the app explicitly shows **structured lookup mode** and uses a pa
 
 ## Change workflow
 
-Use a signed-in company workspace. Acme supports public browsing, Q&A and applied-correction exports; its mutation controls are disabled.
+Use a hosted judge sandbox or a signed-in local company workspace. The shared Acme tour is read-only; the visitor's separate sandbox supports changes, research, ingestion, reviews, correction exports and controlled publishing.
 
 1. Establish an approved baseline through reviewed public website findings or a manually recorded decision, and ingest documents with reviewed claims.
 2. Ask the current policy for a specific audience/date, then record a different approved policy in Change studio.
@@ -120,14 +154,57 @@ See [DEMO.md](docs/DEMO.md) for exact synthetic refund data and dates. Results d
 ```text
 React / Vite
   → Express JSON API (loopback by default)
-    → RippleService (serialized single-process reads/writes)
+    → RippleService (policy applicability, analysis and approval workflow)
       → deterministic policy rules + narrowly scoped model tools
-      → FalkorRepository → real FalkorDB nodes / typed edges / Cypher paths
+      → FalkorRepository → native FalkorDB nodes / typed edges / Cypher paths
+        → consistent snapshots + atomic revision-guarded saves
 ```
 
 See [graph model](docs/GRAPH_MODEL.md), [queries](docs/QUERIES.md), [verification](docs/VERIFICATION.md), and [demo script](docs/DEMO.md).
 
 In FalkorDB mode all authoritative entities, relationships, decisions, claims and review history live in FalkorDB. Dependency discovery runs there, returning concrete path IDs and relationship types. Removing FalkorDB prevents workspace retrieval, analysis, corrections and recall. The preview repository is a separate, openly labeled development simulator, not a production fallback.
+
+## Graph data model
+
+Domain records use native `Entity` nodes with stable IDs, queryable `kind` and typed JSON payloads. Relationships are native graph edges with an `active` flag preserving current versus historical links.
+
+| Node kinds | Role |
+|---|---|
+| `policy`, `decision` | Topic anchors and approved/proposed versions with audience and effective date |
+| `document`, `claim` | Source text, exact reviewed assertions and source revisions |
+| `workflow`, `memory` | Dependent processes and saved agent replies |
+| `owner`, `review`, `correction` | Responsibility, proposed work and preserved repair history |
+| `research`, `publication` | Public-source snapshots and controlled publishing receipts |
+
+```mermaid
+graph LR
+  D[Decision] -->|CREATES| P[Policy version]
+  P -->|SUPERSEDES| O[Previous policy]
+  P -->|DEPENDS_ON| T[Policy topic]
+  O -->|DEPENDS_ON| T
+  A[Document or saved reply] -->|ASSERTS| C[Reviewed claim]
+  C -->|DEPENDS_ON| O
+  W[Workflow] -->|DEPENDS_ON| A
+  A -->|OWNED_BY| R[Owner]
+  D -->|CREATES| Q[Review]
+  Q -->|REPAIRS| A
+  U[Publication receipt] -->|DEPENDS_ON| A
+```
+
+The graph discovers candidate impacts. Deterministic server logic separately selects authority by topic, approval status, audience, effective date and version order. It distinguishes an explicit conflicting claim from a workflow requiring review. See [the full model](docs/GRAPH_MODEL.md) for correction lifecycle and workspace isolation.
+
+## Core Cypher query
+
+This actual query discovers dependent sources and returns their evidence paths:
+
+```cypher
+MATCH p=(a:Entity)-[:DEPENDS_ON|ASSERTS*1..6]->(topic:Entity {id: $target})
+WHERE all(r IN relationships(p) WHERE r.active = true)
+RETURN [n IN nodes(p) | n.id] AS ids,
+       [r IN relationships(p) | type(r)] AS relations
+```
+
+For the refund demonstration, `target = 'topic-refund'`. The same query supports `topic-trial`, `topic-cancellation` and `topic-support`. [server/repository.ts](server/repository.ts) contains the executable query and atomic persistence implementation; [server/domain.ts](server/domain.ts) contains applicability, classification and correction validation. [QUERIES.md](docs/QUERIES.md) explains the snapshot/read and guarded-write queries. No model-generated Cypher or decorative graph is used.
 
 ## Verification
 
@@ -136,6 +213,8 @@ npm.cmd test
 npm.cmd run build
 npm.cmd run check:db
 npm.cmd run check:live
+npm.cmd run check:judge
+npm.cmd run check:concurrency
 ```
 
 Behavior tests cover applicability, exceptions, multi-hop discovery, corrections, idempotency, stale sources, persistence, ingestion and missing knowledge. These simulator/domain tests **do not prove the Cloud connection or live model calls work**. Use the live verification checklist after adding credentials.
@@ -163,3 +242,5 @@ Open http://127.0.0.1:3001. FalkorDB saves enforce an atomic workspace revision 
 ## AI assistance disclosure
 
 OpenAI Codex assisted with implementation, debugging, testing and documentation.
+
+The locally produced demonstration uses synthetic English narration and edited captures of the working app. No team-member contribution or technical understanding is inferred from the use of these tools.

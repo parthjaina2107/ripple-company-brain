@@ -10,7 +10,7 @@ Checked October 18, 2026 against the [official Graph Hacks rules](https://www.we
 | Cypher queries or graph algorithms the product depends on | Actual dependency traversal directly in the README; [query explanations](QUERIES.md), [executable repository](../server/repository.ts) |
 | FalkorDB as primary database, central to the solution | Native dependency traversal, versioned policies, decisions, corrections and persistent recall; [verification](VERIFICATION.md). SQLite is limited to local authentication records. Preview mode is not the submission runtime. |
 | Declared track | **Track 03 — Company Brain**, consistent across README and [submission description](SUBMISSION.md) |
-| Working demo video | Narrated walkthrough and short submission edit produced locally. Public video URL intentionally omitted here at the owner's request; the final event submission still needs a working video link. |
+| Working demo video | [Three-minute working prototype](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing). Link supplied by the owner; include it in the final event submission and confirm access without sign-in. |
 | Live deployment or complete local setup | [Public deployment](https://ripple-company-brain.vercel.app), [interactive judge sandbox](JUDGE_SANDBOX.md), [local setup](LOCAL_SETUP.md) |
 | Permitted data | Synthetic Acme fixtures in [seed](../server/seed.ts), [sample data](../server/sample-data.ts) and [public policy fixture](../public/acme-policies.html). User research is limited to permitted public sources; no private company data is included. |
 | AI assistance disclosure | Concise disclosure in README and [submission description](SUBMISSION.md). Videos use synthetic narration over actual app captures. |

@@ -10,7 +10,9 @@ Built for **Graph Hacks: Context for AI Agents**, October 15–18, 2026. Declare
 
 **Hosted demo:** [Open Ripple](https://ripple-company-brain.vercel.app). Click **Try your own sandbox** for the guided question → change → review → publish → question flow in your own FalkorDB Cloud graph. Hosted Gemini extracts candidate claims and selects a read-only graph tool; approved graph values determine the answer. Follow the [judge walkthrough](docs/JUDGE_SANDBOX.md).
 
-Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md). A narrated walkthrough and a shorter submission edit have been produced locally. The public video link is intentionally omitted from this repository update.
+**Demo video:** [Watch the three-minute working prototype](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing).
+
+Start with [complete local setup](docs/LOCAL_SETUP.md), [the repeatable demo](docs/DEMO.md), [submission description](docs/SUBMISSION.md), [blog draft](docs/BLOG_POST.md), and [judge Q&A](docs/JUDGE_QA.md).
 
 See [the submission checklist](docs/SUBMISSION_CHECKLIST.md) for completed checks and remaining owner actions.
 
@@ -31,7 +33,7 @@ Prepared against the [official Graph Hacks rules](https://www.wemakedevs.org/hac
 | Live deployment | [Open Ripple](https://ripple-company-brain.vercel.app) — no account needed for a judge sandbox |
 | Declared track | **Track 03 — Company Brain** |
 | AI coding-assistant disclosure | [Disclosure below](#ai-assistance-disclosure) |
-| Demo video | Produced locally; public link intentionally omitted here and still required in the final event submission |
+| Demo video | [Three-minute working prototype](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing) |
 
 This repository is not confirmation of registration or final event submission. The team should be able to explain the graph model, queries, architecture and technical decisions; [judge Q&A](docs/JUDGE_QA.md) and [the presentation script](docs/PRESENTATION.md) cover those details.
 

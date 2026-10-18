@@ -13,7 +13,7 @@ Current declared track: **Track 03 — Company Brain**. This is a readiness reco
 | Submission description | Written | [SUBMISSION.md](SUBMISSION.md) |
 | Blog post | Draft written, not published | [BLOG_POST.md](BLOG_POST.md); review, publish, add actual URL |
 | Team technical understanding | Requires team rehearsal | [JUDGE_QA.md](JUDGE_QA.md); each person must explain their work |
-| Demo video | Produced locally; public URL intentionally omitted | Narrated walkthrough and short submission edit exist locally; provide the working video URL in the final event submission |
+| Demo video | Link added | [Three-minute working prototype](https://drive.google.com/file/d/1rE86BOqE2P8hofZ_Y7SbMzFHWnYHpw_3/view?usp=sharing); include this URL in the final event submission and confirm access without sign-in |
 | Deployment | Live tour and writable judge sandboxes | [Acme demo](https://ripple-company-brain.vercel.app); native FalkorDB Cloud and live Gemini with usage limits |
 | Judge access | Public HTTP access verified | Unauthenticated requests to the production page and health endpoint returned HTTP 200 without redirects |
 | Hosted QA fixes | Deployed and API-verified | Exact site Origin accepted; other origins rejected; refund-processing questions return no applicable policy; library has an empty-search state |
